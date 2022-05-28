@@ -1,0 +1,39 @@
+[package]
+name = "{{project-name}}"
+version = "0.1.0-dev"
+authors = ["{{authors}}"]
+edition = "2021"
+license = "{{license-spdx}}"
+description = "{{description}}"
+
+[dependencies]
+{% if project-type == "CLI" %}
+colored = "2.0.0"
+clap = { version = "3.1.0", features = ["derive"] }
+{% elsif project-type == "Embedded (Bare-metal)" %}
+cortex-m = "0.7.4"
+cortex-m-rt = "0.7.1"
+{% elsif project-type == "Embedded (RTIC)" %}
+cortex-m-rtic = "1.0.0"
+{% endif %}
+{% if project-kind == "embedded" %}
+defmt = "0.3.0"
+defmt-rtt = "0.3.0"
+panic-probe = { version = "0.3.0", features = ["print-defmt"] }
+{{hal-package}}
+{% endif %}
+
+{% if project-kind == "embedded" %}
+# For `cargo fix` to work.
+[[bin]]
+name = "{{project-name}}"
+test = false
+bench = false
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+codegen-units = 1
+lto = true
+debug = true
+{% endif %}

@@ -1,0 +1,25 @@
+# {{project-name}}
+
+{{description}}
+
+*This is a work in progress, please look at the `develop` branch for ongoing
+development.*
+
+## [Contributing](CONTRIBUTING.md)
+
+Before contributing to this project, please read the
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+Copyright © 2022 {{author-name}}
+{% if license == "AGPL-3.0" %}
+This project is licensed under the [GNU Affero General Public License
+3.0](./LICENSE).
+{% elsif license == "GPL-3.0" %}
+This project is licensed under the [GNU General Public License 3.0](LICENSE).
+{% elsif license == "Apache-2.0" %}
+This project is licensed under the [Apache-2.0 license](LICENSE).
+{% elsif license == "MIT" %}
+This project is licensed under the [MIT license](LICENSE).
+{% endif %}

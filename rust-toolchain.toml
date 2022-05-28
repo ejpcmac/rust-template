@@ -1,0 +1,4 @@
+[toolchain]
+channel = "stable"
+components = ["clippy", {% if project-kind == "embedded" %}"llvm-tools-preview", {% endif %}"rustfmt"]{% if project-kind == "embedded" %}
+targets = ["{{target}}"]{% endif %}

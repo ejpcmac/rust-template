@@ -1,0 +1,8 @@
+[template]
+ignore = [
+    ".history",
+    "scripts",
+]
+
+[hooks]
+pre = ["scripts/main.rhai"]
