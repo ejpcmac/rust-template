@@ -57,10 +57,10 @@ for l in options::LICENSES {
     }
 }
 
-file::rename(`src/${project.main}.rs`, "src/main.rs");
+file::rename(`${project.src}`, "src");
 for type in options::PROJECT_TYPE_INFO.values() {
     if type != project {
-        file::delete(`src/${type.main}.rs`);
+        file::delete(`${type.src}`);
     }
 }
 

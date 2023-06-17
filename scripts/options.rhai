@@ -10,19 +10,19 @@ export const PROJECT_TYPES = [
 export const PROJECT_TYPE_INFO = #{
     "Minimal": #{
         kind: "std",
-        main: "main-minimal",
+        src: "src-minimal",
     },
     "CLI": #{
         kind: "std",
-        main: "main-cli",
+        src: "src-cli",
     },
     "Embedded (Bare-metal)": #{
         kind: "embedded",
-        main: "main-bare-metal",
+        src: "src-bare-metal",
     },
     "Embedded (RTIC)": #{
         kind: "embedded",
-        main: "main-rtic",
+        src: "src-rtic",
     },
 };
 
