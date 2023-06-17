@@ -1,0 +1,21 @@
+{{license-header}}
+use clap::Parser;
+use eyre::Result;
+
+/// Arguments for `{{project-name}} hello`.
+#[derive(Debug, Parser)]
+pub struct Hello {
+    /// Who to say hello to.
+    name: Option<String>,
+}
+
+impl super::Command for Hello {
+    fn run(&self) -> Result<()> {
+        let Self { name } = self;
+
+        let name = name.as_deref().unwrap_or("world");
+        println!("Hello, {name}!");
+
+        Ok(())
+    }
+}

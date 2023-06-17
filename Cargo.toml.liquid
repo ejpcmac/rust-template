@@ -9,7 +9,9 @@ description = "{{description}}"
 [dependencies]
 {% if project-type == "CLI" %}
 clap = { version = "4", features = ["derive", "wrap_help"] }
+color-eyre = "0.6"
 colored = "2"
+eyre = "0.6"
 {% elsif project-type == "Embedded (Bare-metal)" %}
 cortex-m-rt = "0.7"
 {% elsif project-type == "Embedded (RTIC)" %}

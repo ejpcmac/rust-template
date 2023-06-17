@@ -2,18 +2,11 @@
 //! {{description}}
 
 {{module-attributes}}
-use clap::Parser;
+use eyre::Result;
 
-/// {{description}}
-#[derive(Debug, Parser)]
-#[command(author, version)]
-pub struct Cli {
-    /// Who to say hello to.
-    name: Option<String>,
-}
+use {{crate_name}}::{{crate_name|upper_camel_case}};
 
-fn main() {
-    let cli = Cli::parse();
-    let name = cli.name.unwrap_or_else(|| String::from("world"));
-    println!("Hello, {name}!");
+fn main() -> Result<()> {
+    color_eyre::install()?;
+    {{crate_name|upper_camel_case}}::run()
 }
