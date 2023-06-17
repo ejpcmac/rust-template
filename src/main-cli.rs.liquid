@@ -4,7 +4,7 @@ use clap::Parser;
 
 /// {{description}}
 #[derive(Debug, Parser)]
-#[clap(author, version)]
+#[command(author, version)]
 pub struct Cli {
     /// Who to say hello to.
     name: Option<String>,

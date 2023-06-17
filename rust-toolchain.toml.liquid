@@ -1,4 +1,5 @@
 [toolchain]
 channel = "stable"
-components = ["clippy", {% if project-kind == "embedded" %}"llvm-tools-preview", {% endif %}"rustfmt"]{% if project-kind == "embedded" %}
+profile = "default"{% if project-kind == "embedded" %}
+components = ["llvm-tools"]
 targets = ["{{target}}"]{% endif %}
