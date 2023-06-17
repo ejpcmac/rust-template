@@ -1,8 +1,5 @@
 [template]
-ignore = [
-    ".history",
-    "scripts",
-]
+ignore = [".history", ".vscode", "scripts"]
 
 [hooks]
 pre = ["scripts/main.rhai"]
