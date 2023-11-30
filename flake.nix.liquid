@@ -44,9 +44,15 @@
               # Build toolchain.
               rust-toolchain
               clang{% if project-kind == "embedded" %}
-              flip-link
+              flip-link{% endif %}
+
+              # IDE toolchain.
+              nil
+              nixpkgs-fmt
+              rust-analyzer
 
               # Tools.
+              cargo-watch{% if project-kind == "embedded" %}
               cargo-binutils
               gcc-arm-embedded
               openocd
