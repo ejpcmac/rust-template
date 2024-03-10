@@ -41,17 +41,17 @@
             '';
 
             packages = with pkgs; [
-              # Build toolchain.
+              # Build toolchain
               rust-toolchain
               clang{% if project-kind == "embedded" %}
               flip-link{% endif %}
 
-              # IDE toolchain.
+              # IDE toolchain
               nil
               nixpkgs-fmt
               rust-analyzer
 
-              # Tools.
+              # Tools
               cargo-watch{% if project-kind == "embedded" %}
               cargo-binutils
               gcc-arm-embedded

@@ -32,7 +32,7 @@ debug = "commit used for debugging purposes, not to be integrated"
 # of valid scopes is required.
 accept = "list"
 list = [
-    # Templates.
+    # Templates
     "t:build.rs@embedded",
     "t:cargo",
     "t:cargo@bare-metal",
@@ -63,10 +63,10 @@ list = [
     "t:toolchain",
     "t:toolchain@embedded",
 
-    # Generator.
+    # Generator
     "scripts",
 
-    # Tools.
+    # Tools
     "cargo-generate",
     "devshell",
     "direnv",

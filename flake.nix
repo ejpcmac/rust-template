@@ -40,7 +40,7 @@
             '';
 
             packages = with pkgs; [
-              # Tools.
+              # Tools
               cargo-generate
               git-z
             ];
