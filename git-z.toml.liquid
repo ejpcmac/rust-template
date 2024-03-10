@@ -32,47 +32,35 @@ debug = "commit used for debugging purposes, not to be integrated"
 # of valid scopes is required.
 accept = "list"
 list = [
-    # Templates.
-    "t:build.rs@embedded",
-    "t:cargo",
-    "t:cargo@bare-metal",
-    "t:cargo@cli",
-    "t:cargo@embedded",
-    "t:cargo@minimal",
-    "t:cargo@rtic",
-    "t:changelog",
-    "t:contributing",
-    "t:devshell",
-    "t:devshell@embedded",
-    "t:editorconfig",
-    "t:embedded-toml",
-    "t:envrc",
-    "t:flake",
-    "t:git-z",
-    "t:gitignore",
-    "t:gitignore@embedded",
-    "t:license",
-    "t:memory.x",
-    "t:openocd",
-    "t:readme",
-    "t:rustfmt",
-    "t:src@bare-metal",
-    "t:src@cli",
-    "t:src@minimal",
-    "t:src@rtic",
-    "t:toolchain",
-    "t:toolchain@embedded",
+    # Binary
+    "main",
 
-    # Generator.
-    "scripts",
+    # Lib{% if project-type == "CLI" %}
+    "cli",
+    "command",
+    "helpers",{% endif %}
+    "lib",{% if project-type == "CLI" %}
 
-    # Tools.
-    "cargo-generate",
+    # Commands
+    "c:hello",{% endif %}
+
+    # General scopes
+    "changelog",
+    "contributing",
     "devshell",
-    "direnv",
     "flake",
+    "readme",
+    "toolchain",
+    "version",
+
+    # Tools
+    "cargo",
+    "clippy",
+    "direnv",
+    "editorconfig",
     "git",
     "git-z",
+    "rustfmt",
     "vscode",
 ]
 
@@ -86,7 +74,7 @@ required = false
 # The list of valid ticket prefixes.
 #
 # Can be a `#` for GitHub / GitLab issues, or a Jira key for instance.
-prefixes = ["#"]
+prefixes = ["#", "GH-"]
 
 # Templates written with the Tera [1] templating engine.
 #
@@ -106,11 +94,11 @@ prefixes = ["#"]
 #   - breaking_change (optional): the description of the breaking change
 #   - ticket (optional): the ticket reference
 commit = """
-{{ type }}{% if scope %}({{ scope }}){% endif %}{% if breaking_change %}!{% endif %}: {{ description }}
+{{"{{"}} type {{"}}"}}{{"{%"}} if scope {{"%}"}}({{"{{"}} scope {{"}}"}}){{"{%"}} endif {{"%}"}}{{"{%"}} if breaking_change {{"%}"}}!{{"{%"}} endif {{"%}"}}: {{"{{"}} description {{"}}"}}
 
 # Feel free to enter a longer description here.
 
-{% if ticket %}Refs: {{ ticket }}{% endif %}
+{{"{%"}} if ticket {{"%}"}}Refs: {{"{{"}} ticket {{"}}"}}{{"{%"}} endif {{"%}"}}
 
-{% if breaking_change %}BREAKING CHANGE: {{ breaking_change }}{% endif %}
+{{"{%"}} if breaking_change {{"%}"}}BREAKING CHANGE: {{"{{"}} breaking_change {{"}}"}}{{"{%"}} endif {{"%}"}}
 """
