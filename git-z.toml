@@ -1,0 +1,115 @@
+version = "0.2"
+
+# The available types of commits and their description.
+#
+# Types are shown in the dialog in the order they appear in this configuration.
+[types]
+feat = "adds a new feature in the code"
+sec = "patches a security issue"
+fix = "patches a code bug"
+perf = "enhances the performance, without adding a new feature"
+refactor = "refactors the code"
+test = "adds, updates or removes tests only"
+docs = "updates the documentation only"
+style = "updates the style, like running clang-format or changing headers"
+deps = "adds, updates or removes external dependencies"
+build = "updates the build system or build scripts"
+env = "updates the development environment"
+ide = "updates the IDE configuration"
+ci = "updates the CI configuration"
+revert = "reverts a previous commit"
+chore = "updates something that is not covered by any other type"
+wip = "work in progress / to be rebased and squashed later"
+debug = "commit used for debugging purposes, not to be integrated"
+
+# The accepted scopes.
+#
+# This table is optional: if omitted, no scope will be asked for.
+[scopes]
+# What kind of scope to accept.
+#
+# Can be one of: "any", "list". If it is "list", a `list` key containing a list
+# of valid scopes is required.
+accept = "list"
+list = [
+    # Templates.
+    "t:build.rs@embedded",
+    "t:cargo",
+    "t:cargo@bare-metal",
+    "t:cargo@cli",
+    "t:cargo@embedded",
+    "t:cargo@minimal",
+    "t:cargo@rtic",
+    "t:changelog",
+    "t:contributing",
+    "t:devshell",
+    "t:devshell@embedded",
+    "t:editorconfig",
+    "t:embedded-toml",
+    "t:envrc",
+    "t:flake",
+    "t:gitignore",
+    "t:gitignore@embedded",
+    "t:license",
+    "t:memory.x",
+    "t:openocd",
+    "t:readme",
+    "t:rustfmt",
+    "t:src@bare-metal",
+    "t:src@cli",
+    "t:src@minimal",
+    "t:src@rtic",
+    "t:toolchain",
+    "t:toolchain@embedded",
+
+    # Generator.
+    "scripts",
+
+    # Tools.
+    "cargo-generate",
+    "devshell",
+    "direnv",
+    "flake",
+    "git",
+    "git-z",
+    "vscode",
+]
+
+# The ticket / issue reference configuration.
+#
+# This table is optional: if omitted, no ticket will be asked for.
+[ticket]
+# Set to true to require a ticket number.
+# Set to false to ask for a ticket without requiring it.
+required = false
+# The list of valid ticket prefixes.
+#
+# Can be a `#` for GitHub / GitLab issues, or a Jira key for instance.
+prefixes = ["#"]
+
+# Templates written with the Tera [1] templating engine.
+#
+# Each template is documented below, with its list of available variables.
+# Variables marked as optional can be `None`, hence should be checked for
+# presence in the template.
+#
+# [1] https://tera.netlify.app/
+[templates]
+# The commit template.
+#
+# Available variables:
+#
+#   - type: the type of commit
+#   - scope (optional): the scope of the commit
+#   - description: the short description
+#   - breaking_change (optional): the description of the breaking change
+#   - ticket (optional): the ticket reference
+commit = """
+{{ type }}{% if scope %}({{ scope }}){% endif %}{% if breaking_change %}!{% endif %}: {{ description }}
+
+# Feel free to enter a longer description here.
+
+{% if ticket %}Refs: {{ ticket }}{% endif %}
+
+{% if breaking_change %}BREAKING CHANGE: {{ breaking_change }}{% endif %}
+"""

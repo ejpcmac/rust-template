@@ -1,5 +1,12 @@
 [template]
-ignore = [".direnv", ".history", ".vscode", "flake.lock", "scripts"]
+ignore = [
+    ".direnv",
+    ".history",
+    ".vscode",
+    "flake.lock",
+    "git-z.toml",
+    "scripts",
+]
 
 [hooks]
 pre = ["scripts/main.rhai"]
