@@ -33,6 +33,7 @@ debug = "commit used for debugging purposes, not to be integrated"
 accept = "list"
 list = [
     # Templates
+    "t:build.rs",
     "t:build.rs@embedded",
     "t:cargo",
     "t:cargo@bare-metal",
@@ -48,6 +49,7 @@ list = [
     "t:embedded-toml",
     "t:envrc",
     "t:flake",
+    "t:flake@cli",
     "t:git-z",
     "t:gitignore",
     "t:gitignore@embedded",
@@ -62,6 +64,7 @@ list = [
     "t:src@rtic",
     "t:toolchain",
     "t:toolchain@embedded",
+    "t:vscode",
 
     # Generator
     "scripts",

@@ -1,4 +1,12 @@
 {{license-header}}
+/// Uncapitalises the first character in s.
+pub fn uncapitalise(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_lowercase().collect::<String>() + chars.as_str(),
+    }
+}
 
 /// Prints a success.
 #[macro_export]
@@ -10,13 +18,25 @@ macro_rules! success {
     {{"}}"}};
 }
 
+/// Prints a warning.
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => {{"{{"}}
+        use colored::Colorize;
+        let message = format!($($arg)*).yellow().bold();
+        eprintln!("{message}");
+    {{"}}"}};
+}
+
 /// Prints an error.
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
-        let message = format!($($arg)*).red().bold();
-        println!("{message}");
+        let message = format!($($arg)*);
+        let message = $crate::command::helpers::uncapitalise(&message);
+        let message = format!("Error: {message}").red().bold();
+        eprintln!("{message}");
     {{"}}"}};
 }
 
@@ -26,6 +46,6 @@ macro_rules! hint {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
         let message = format!($($arg)*).blue();
-        println!("{message}");
+        eprintln!("{message}");
     {{"}}"}};
 }

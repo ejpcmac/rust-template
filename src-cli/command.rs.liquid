@@ -9,7 +9,7 @@ use self::hello::Hello;
 
 /// {{description}}
 #[derive(Debug, Parser)]
-#[command(author, version)]
+#[command(author, version = env!("VERSION_WITH_GIT"))]
 pub enum {{crate_name|upper_camel_case}} {
     /// Say hello.
     Hello(Hello),
@@ -28,22 +28,44 @@ impl {{crate_name|upper_camel_case}} {
         };
 
         match result {
-            Err(e) => handle_errors(e),
+            Err(error) => handle_errors(error),
             Ok(()) => Ok(()),
         }
     }
 }
 
-fn handle_errors(e: color_eyre::Report) -> Result<()> {
-    // if let Some(e) = e.downcast_ref::<ErrorType>() {
-    //     match e {
-    //         ErrorType::ErrorKind => {
-    //             error!("{e}");
-    //             hint!("Some help message.");
-    //         }
-    //     }
-    //     std::process::exit(1);
+// /// How to handle the error.
+// enum ErrorHandling {
+//     /// Return the report.
+//     Return(Report),
+//     /// Exit the program with the given status code.
+//     Exit(i32),
+// }
+
+fn handle_errors(error: color_eyre::Report) -> Result<()> {
+    // let handling = if let Some(error) = error.downcast_ref::<ErrorType>() {
+    //     handle_error_type(error)
     // } else {
-    Err(e)
+    //     ErrorHandling::Return(error)
+    // };
+
+    // match handling {
+    //     ErrorHandling::Return(error) => Err(error),
+    //     ErrorHandling::Exit(code) => {
+    //         #[allow(clippy::exit)]
+    //         std::process::exit(code);
+    //     }
     // }
+    Err(error)
 }
+
+// fn handle_error_type(error: &ErrorType) -> ErrorHandling {
+//     match error {
+//         ErrorType::ErrorKind => {
+//             error!("{error}");
+//             hint!("Some help message.");
+//         }
+//     }
+
+//     ErrorHandling::Exit(1)
+// }

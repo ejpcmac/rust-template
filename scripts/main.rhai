@@ -1,5 +1,4 @@
 import "scripts/options" as options;
-import "scripts/constants" as constants;
 import "scripts/license_header" as license_header;
 
 // Get built-in variables.
@@ -34,12 +33,6 @@ let license_header = switch license {
     _ => "",
 };
 
-let module_attributes = if project.kind == "embedded" {
-    constants::NOSTD_ATTRIBUTES + constants::MODULE_ATTRIBUTES
-} else {
-    constants::MODULE_ATTRIBUTES
-};
-
 variable::set("author-name", author_name);
 variable::set("description", description);
 variable::set("project-type", project_type);
@@ -48,7 +41,6 @@ variable::set("license", license);
 variable::set("license-spdx", license_spdx);
 variable::set("license-header", license_header);
 variable::set("github-username", github_username);
-variable::set("module-attributes", module_attributes);
 
 file::rename(`LICENSE-${license}`, "LICENSE");
 for l in options::LICENSES {
@@ -66,7 +58,6 @@ for type in options::PROJECT_TYPE_INFO.values() {
 
 if project.kind != "embedded" {
     file::delete(".cargo");
-    file::delete("build.rs");
     file::delete("Embed.toml");
     file::delete("memory.x");
     file::delete("openocd.cfg");
