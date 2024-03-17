@@ -9,7 +9,7 @@ use self::hello::Hello;
 
 /// {{description}}
 #[derive(Debug, Parser)]
-#[command(author, version)]
+#[command(author, version = env!("VERSION_WITH_GIT"))]
 pub enum {{crate_name|upper_camel_case}} {
     /// Say hello.
     Hello(Hello),

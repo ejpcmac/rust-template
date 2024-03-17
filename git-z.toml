@@ -33,6 +33,7 @@ debug = "commit used for debugging purposes, not to be integrated"
 accept = "list"
 list = [
     # Templates
+    "t:build.rs",
     "t:build.rs@embedded",
     "t:cargo",
     "t:cargo@bare-metal",
