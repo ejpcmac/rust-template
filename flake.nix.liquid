@@ -18,6 +18,11 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    git-z = {
+      url = "github:ejpcmac/git-z";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { flake-parts, ... }@inputs:
@@ -25,11 +30,12 @@
       imports = [ inputs.devshell.flakeModule ];
       systems = [ "x86_64-linux" ];
 
-      perSystem = { system, ... }:
+      perSystem = { inputs', system, ... }:
         let
           overlays = [ (import inputs.rust-overlay) ];
           pkgs = import inputs.nixpkgs { inherit system overlays; };
           rust-toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          git-z = inputs'.git-z.packages.git-z;
         in
         {
           devshells.default = {
@@ -52,7 +58,12 @@
               rust-analyzer
 
               # Tools
-              cargo-watch{% if project-kind == "embedded" %}
+              cargo-bloat
+              cargo-outdated
+              cargo-watch
+              git
+              git-z
+              gitAndTools.gitflow{% if project-kind == "embedded" %}
               cargo-binutils
               gcc-arm-embedded
               openocd
