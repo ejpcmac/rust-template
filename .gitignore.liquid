@@ -6,7 +6,10 @@
 /.direnv/
 
 # Rust build directory
-/target/
+/target/{% if project-type == "CLI" %}
+
+# Nix build ouptut.
+/result{% endif %}
 
 ##
 ## Editor artifacts

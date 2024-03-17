@@ -49,6 +49,7 @@ list = [
     "t:embedded-toml",
     "t:envrc",
     "t:flake",
+    "t:flake@cli",
     "t:git-z",
     "t:gitignore",
     "t:gitignore@embedded",
