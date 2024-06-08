@@ -1,4 +1,6 @@
 {{license-header}}
+//! The Command Line Interface for {{project-name}}.
+
 mod hello;
 mod helpers;
 
@@ -15,6 +17,7 @@ pub enum {{crate_name|upper_camel_case}} {
     Hello(Hello),
 }
 
+/// A command.
 trait Command {
     /// Runs the command.
     fn run(&self) -> Result<()>;
@@ -42,6 +45,7 @@ impl {{crate_name|upper_camel_case}} {
 //     Exit(i32),
 // }
 
+/// Handles typical usage errors to enhance their output.
 fn handle_errors(error: color_eyre::Report) -> Result<()> {
     // let handling = if let Some(error) = error.downcast_ref::<ErrorType>() {
     //     handle_error_type(error)

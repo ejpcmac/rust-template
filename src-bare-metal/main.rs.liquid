@@ -11,6 +11,7 @@ use cortex_m_rt::entry;
 use stm32l4xx_hal as _;
 
 #[entry]
+#[allow(clippy::missing_docs_in_private_items)]
 fn main() -> ! {
     defmt::println!("Hello, world!");
 
