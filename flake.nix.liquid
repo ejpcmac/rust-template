@@ -84,7 +84,14 @@
               ];
 
               checkToolchain = with pkgs; [
+                cargo-hack
+                cargo-nextest
+                committed
+                eclint
                 nixpkgs-fmt
+                nodePackages.prettier
+                taplo
+                typos
               ];
 
               ideToolchain = with pkgs; [
@@ -110,6 +117,10 @@
                 {
                   name = "NIX_PATH";
                   value = "nixpkgs=${inputs.nixpkgs}";
+                }
+                {
+                  name = "TYPOS_LSP_PATH";
+                  value = "${pkgs.typos-lsp}/bin/typos-lsp";
                 }
               ];
             in
