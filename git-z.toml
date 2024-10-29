@@ -72,6 +72,7 @@ list = [
     "flake",
     "git",
     "git-z",
+    "taplo",
     "vscode",
 ]
 
