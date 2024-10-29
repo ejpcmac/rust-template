@@ -68,6 +68,7 @@ list = [
     "cargo-generate",
     "devshell",
     "direnv",
+    "editorconfig",
     "flake",
     "git",
     "git-z",
