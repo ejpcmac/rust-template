@@ -142,6 +142,25 @@
                 env =
                   ideEnv;
 
+                commands = [{% if project-type == "CLI" %}
+                  {
+                    name = "build-deb";
+                    command = "cargo deb --target=x86_64-unknown-linux-musl";
+                  }
+{% endif %}
+                  # Pass-through commands to make some cargo extensions run in
+                  # their own devshell.{% if project-type == "CLI" %}
+                  {
+                    name = "cargo-deb";
+                    command = "nix develop -L .#deb -c cargo $@";
+                  }{% endif %}
+                  {
+                    name = "cargo-udeps";
+                    command = "nix develop -L .#udeps -c cargo $@";
+                  }
+                ];
+              };
+
               ci = {
                 name = "{{project-name}} CI";
 
