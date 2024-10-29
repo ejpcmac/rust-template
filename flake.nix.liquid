@@ -38,61 +38,86 @@
       perSystem = { {% if project-type == "CLI" %}self', {% endif %}inputs', system, ... }:
         let
           overlays = [ (import inputs.rust-overlay) ];
-          pkgs = import inputs.nixpkgs { inherit system overlays; };{% if project-type == "CLI" %}
-{% endif %}
-          rust-toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;{% if project-type == "CLI" %}
-          naersk = pkgs.callPackage inputs.naersk {
-            cargo = rust-toolchain;
-            rustc = rust-toolchain;
-          };
-{% endif %}
-          git-z = inputs'.git-z.packages.git-z;{% if project-type == "CLI" %}
-
-          packageName = "{{project-name}}";{% endif %}
+          pkgs = import inputs.nixpkgs { inherit system overlays; };
+          rust-toolchain =
+            pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         in
-        { {% if project-type == "CLI" %}
-          packages = {
-            default = self'.packages.${packageName};
+        {{"{"}}{% if project-type == "CLI" %}
+          ######################################################################
+          ##                             Packages                             ##
+          ######################################################################
 
-            ${packageName} = naersk.buildPackage {
-              src = ./.;
-              RUSTFLAGS = "-Amissing_docs";
+          packages =
+            let
+              packageName = "{{project-name}}";
+
+              naersk = pkgs.callPackage inputs.naersk {
+                cargo = rust-toolchain;
+                rustc = rust-toolchain;
+              };
+            in
+            {
+              default = self'.packages.${packageName};
+
+              ${packageName} = naersk.buildPackage {
+                src = ./.;
+                RUSTFLAGS = "-A missing_docs";
+              };
             };
-          };
 {% endif %}
-          devshells.default = {
-            name = "{{project-name}}";
+          ######################################################################
+          ##                            Devshells                             ##
+          ######################################################################
 
-            motd = ''
+          devshells =
+            let
+              git-z = inputs'.git-z.packages.git-z;
 
-              {202}🔨 Welcome to the {{project-name}} devshell!{reset}
-            '';
+              buildToolchain = with pkgs; [
+                rust-toolchain
+                clang{% if project-kind == "embedded" %}
+                flip-link{% endif %}
+              ];
 
-            packages = with pkgs; [
-              # Build toolchain
-              rust-toolchain
-              clang{% if project-kind == "embedded" %}
-              flip-link{% endif %}
+              checkToolchain = with pkgs; [
+                nixpkgs-fmt
+              ];
 
-              # IDE toolchain
-              nil
-              nixpkgs-fmt
-              rust-analyzer
+              ideToolchain = with pkgs; [
+                nil
+                rust-analyzer
+              ];
 
-              # Tools
-              cargo-bloat
-              cargo-outdated
-              cargo-watch
-              git
-              git-z
-              gitAndTools.gitflow{% if project-kind == "embedded" %}
-              cargo-binutils
-              gcc-arm-embedded
-              openocd
-              probe-rs
-              probe-run{% endif %}
-            ];
-          };
+              developmentTools = with pkgs; [
+                cargo-bloat
+                cargo-outdated
+                cargo-watch
+                git
+                git-z
+                gitAndTools.gitflow{% if project-kind == "embedded" %}
+                cargo-binutils
+                gcc-arm-embedded
+                openocd
+                probe-rs
+                probe-run{% endif %}
+              ];
+            in
+            {
+              default = {
+                name = "{{project-name}}";
+
+                motd = ''
+
+                {202}🔨 Welcome to the {{project-name}} devshell!{reset}
+              '';
+
+                packages =
+                  buildToolchain
+                  ++ checkToolchain
+                  ++ ideToolchain
+                  ++ developmentTools;
+              };
+            };
         };
     };
 }
