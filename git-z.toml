@@ -46,6 +46,7 @@ list = [
     "t:envrc",
     "t:flake",
     "t:flake@cli",
+    "t:gh-ci",
     "t:git-z",
     "t:gitignore",
     "t:gitignore@embedded",
