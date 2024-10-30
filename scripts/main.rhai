@@ -50,9 +50,16 @@ for l in options::LICENSES {
 }
 
 file::rename(`${project.src}`, "src");
+if project.tests != () {
+    file::rename(`${project.tests}`, "tests");
+}
+
 for type in options::PROJECT_TYPE_INFO.values() {
     if type != project {
         file::delete(`${type.src}`);
+        if type.tests != () {
+            file::delete(`${type.tests}`);
+        }
     }
 }
 

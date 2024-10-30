@@ -60,6 +60,7 @@ list = [
     "t:src@minimal",
     "t:src@rtic",
     "t:taplo",
+    "t:test@cli",
     "t:toolchain",
     "t:toolchain@embedded",
     "t:vscode",

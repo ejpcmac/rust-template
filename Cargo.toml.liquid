@@ -40,6 +40,13 @@ version = "0.7.5"
 features = ["critical-section-single-core", "inline-asm"]
 {% endif %}
 
+{% if project-type == "CLI" %}
+[target.'cfg(not(windows))'.dev-dependencies]
+assert_cmd = "2"
+rexpect = "0.5"
+# assert_fs = "1"
+# predicates = "3"
+{% endif %}
 {% if project-kind == "embedded" %}
 # For `cargo fix` to work.
 [[bin]]
