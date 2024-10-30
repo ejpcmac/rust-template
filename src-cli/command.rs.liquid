@@ -10,9 +10,28 @@ use tracing_subscriber::fmt::format::FmtSpan;
 
 use self::hello::Hello;
 
+/// The long version information.
+const LONG_VERSION: &str = concat!(
+    env!("CARGO_PKG_VERSION"),
+    "\nrevision: ",
+    env!("REVISION"),
+    "\nfeatures: ",
+    env!("FEATURES"),
+    "\ntarget: ",
+    env!("TARGET"),
+    "\nprofile: ",
+    env!("PROFILE"),
+    "\nbuilt by: ",
+    env!("BUILT_BY"),
+);
+
 /// {{description}}
 #[derive(Debug, Parser)]
-#[command(author, version = env!("VERSION_WITH_GIT"))]
+#[command(
+    author,
+    version = env!("VERSION_WITH_GIT"),
+    long_version = LONG_VERSION,
+)]
 pub struct {{crate_name|upper_camel_case}} {
     /// The command to run.
     #[command(subcommand)]
