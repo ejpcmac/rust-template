@@ -55,6 +55,7 @@ list = [
     "t:openocd",
     "t:prettierignore",
     "t:readme",
+    "t:readme@cli",
     "t:rustfmt",
     "t:src@bare-metal",
     "t:src@cli",
