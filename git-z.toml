@@ -64,6 +64,7 @@ list = [
     "t:toolchain",
     "t:toolchain@embedded",
     "t:vscode",
+    "t:xtask",
 
     # Generator
     "scripts",

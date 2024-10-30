@@ -64,7 +64,6 @@ for type in options::PROJECT_TYPE_INFO.values() {
 }
 
 if project.kind != "embedded" {
-    file::delete(".cargo");
     file::delete("Embed.toml");
     file::delete("memory.x");
     file::delete("openocd.cfg");
