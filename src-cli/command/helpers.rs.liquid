@@ -1,21 +1,12 @@
 {{license-header}}
 //! Helpers for writing CLIs.
 
-/// Uncapitalises the first character in s.
-pub fn uncapitalise(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(c) => c.to_lowercase().collect::<String>() + chars.as_str(),
-    }
-}
-
 /// Prints a success.
 #[macro_export]
 macro_rules! success {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
-        let message = format!($($arg)*).green().bold();
+        let message = indoc::formatdoc!($($arg)*).green().bold();
         println!("{message}");
     {{"}}"}};
 }
@@ -25,7 +16,12 @@ macro_rules! success {
 macro_rules! warning {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
-        let message = format!($($arg)*).yellow().bold();
+
+        let log_message = $crate::helpers::uncapitalise(&format!($($arg)*));
+        let log_message = log_message.trim_end_matches(".");
+        tracing::warn!("{log_message}");
+
+        let message = indoc::formatdoc!($($arg)*).yellow().bold();
         eprintln!("{message}");
     {{"}}"}};
 }
@@ -35,8 +31,8 @@ macro_rules! warning {
 macro_rules! error {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
-        let message = format!($($arg)*);
-        let message = $crate::command::helpers::uncapitalise(&message);
+        let message = indoc::formatdoc!($($arg)*);
+        let message = $crate::helpers::uncapitalise(&message);
         let message = format!("Error: {message}").red().bold();
         eprintln!("{message}");
     {{"}}"}};
@@ -47,7 +43,7 @@ macro_rules! error {
 macro_rules! hint {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize;
-        let message = format!($($arg)*).blue();
+        let message = indoc::formatdoc!($($arg)*).blue();
         eprintln!("{message}");
     {{"}}"}};
 }
