@@ -17,9 +17,13 @@ description = "{{description}}"
 clap = { version = "4", features = ["derive", "wrap_help"] }
 color-eyre = "0.6"
 colored = "2"
+exitcode = "1"
 eyre = "0.6"
+indoc = "2"
 inquire = "0.7"
 thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 {% elsif project-type == "Embedded (Bare-metal)" %}
 cortex-m-rt = "0.7"
 {% elsif project-type == "Embedded (RTIC)" %}
