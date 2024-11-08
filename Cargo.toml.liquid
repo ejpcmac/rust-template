@@ -39,11 +39,11 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 version = "0.7.5"
 features = ["critical-section-single-core", "inline-asm"]
 {% endif %}
-
+{% if project-type == "CLI" %}
 [build-dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-{% if project-type == "CLI" %}
+
 [target.'cfg(not(windows))'.dev-dependencies]
 assert_cmd = "2"
 rexpect = "0.5"
@@ -64,10 +64,10 @@ codegen-units = 1
 lto = true
 debug = true
 {% endif %}
-
+{% if project-kind != "embedded" %}
 [workspace]
 members = ["xtask"]
-
+{% endif %}
 [lints.rust]
 # Forbidden
 unsafe_code = "forbid"

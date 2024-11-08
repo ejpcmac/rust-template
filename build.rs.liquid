@@ -31,7 +31,10 @@ fn main() {
 /// * it is not possible to get the `OUT_DIR` variable,
 /// * it is not possible to create `memory.x`,
 /// * it is not possible to write to `memory.x`.
-#[allow(clippy::unwrap_used)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "any of the following errors is a hard error"
+)]
 fn copy_linker_script() {
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     File::create(out.join("memory.x"))
@@ -109,8 +112,8 @@ fn maybe_revision(cargo_version: &str) -> Option<String> {
     maybe_revision_from_git(cargo_version)
         .ok()
         .flatten()
-        .or_else(|| maybe_revision_from_flake(cargo_version))
-        .or_else(|| maybe_revision_from_cargo_vcs_info(cargo_version))
+        .or_else(|| maybe_revision_from_flake(cargo_version)){% if project-type == "CLI" %}
+        .or_else(|| maybe_revision_from_cargo_vcs_info(cargo_version)){% endif %}
 }
 
 /// Gets the revision from Git if applicable.
@@ -195,7 +198,7 @@ fn maybe_revision_from_flake(cargo_version: &str) -> Option<String> {
         None
     }
 }
-
+{% if project-type == "CLI" %}
 /// Gets the revision from the `.cargo_vcs_info.json` if applicable.
 fn maybe_revision_from_cargo_vcs_info(cargo_version: &str) -> Option<String> {
     if is_dev_version(cargo_version) {
@@ -235,7 +238,7 @@ fn revision_from_cargo_vcs_info() -> io::Result<String> {
 
     Ok(revision)
 }
-
+{% endif %}
 /// Returns whether the current version is a development version.
 fn is_dev_version(cargo_version: &str) -> bool {
     cargo_version.contains("-dev")
@@ -252,8 +255,8 @@ fn revision() -> String {
     git_revision_and_state()
         .ok()
         .flatten()
-        .or_else(|| env::var("FLAKE_REVISION").ok())
-        .or_else(|| revision_from_cargo_vcs_info().ok())
+        .or_else(|| env::var("FLAKE_REVISION").ok()){% if project-type == "CLI" %}
+        .or_else(|| revision_from_cargo_vcs_info().ok()){% endif %}
         .unwrap_or_default()
 }
 

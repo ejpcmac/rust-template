@@ -23,7 +23,7 @@ mod app {
     ) -> (SharedResources, LocalResources, init::Monotonics) {
         defmt::info!("Firmware starting...");
 
-        #[allow(clippy::no_effect_underscore_binding)]
+        #[expect(clippy::no_effect_underscore_binding, reason = "not yet used")]
         let _cp = cx.core;
         let dp = cx.device;
 

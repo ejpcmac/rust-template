@@ -177,8 +177,8 @@ jobs:
         run: nix develop .#udeps -c cargo xtask check unused-deps
       - name: Look for unused dependencies (without Nix)
         if: matrix.system == 'x86_64-windows'
-        run: cargo +nightly xtask check unused-deps
-{% if project-type == "CLI" %}
+        run: cargo +nightly xtask check unused-deps{% if project-type == "CLI" %}
+
   packages:
     name: Packages
     runs-on: ${{"{{"}} matrix.runner {{"}}"}}
@@ -217,5 +217,4 @@ jobs:
         run: nix develop .#ci -c cargo xtask check packages
       - name: Build the packages (without Nix)
         if: matrix.system == 'x86_64-windows'
-        run: cargo xtask check packages
-{% endif %}
+        run: cargo xtask check packages{% endif %}

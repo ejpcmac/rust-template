@@ -1,5 +1,5 @@
-include = ["*.toml", ".config/*.toml", "xtask/**/*.toml"]
-exclude = [".cargo/config.toml"]
+include = ["*.toml", ".config/*.toml",{% if project-kind == "embedded" %} "firmware/**/*.toml",{% endif %} "xtask/**/*.toml"]
+exclude = [{% if project-kind == "embedded" %}"firmware/**/*.toml", {% endif %}".cargo/config.toml"]
 
 [formatting]
 indent_string = "    "

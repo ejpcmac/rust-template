@@ -109,8 +109,7 @@
                 cargo-binutils
                 gcc-arm-embedded
                 openocd
-                probe-rs
-                probe-run{% endif %}
+                probe-rs{% endif %}
               ];
 
               ideEnv = [
@@ -187,8 +186,11 @@
               # NOTE: cargo-udeps needs Rust nightly to run.
               udeps = {
                 name = "cargo-udeps";
-                packages = with pkgs; [
-                  rust-bin.nightly."2024-10-28".minimal
+                packages = with pkgs; [{% if project-kind == "embedded" %}
+                  (rust-bin.nightly."2024-10-28".minimal.override {
+                    targets = [ "{{target}}" ];
+                  }){% else %}
+                  rust-bin.nightly."2024-10-28".minimal{% endif %}
                   clang
                   cargo-hack
                   cargo-udeps

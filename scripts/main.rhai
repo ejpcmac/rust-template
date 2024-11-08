@@ -63,11 +63,16 @@ for type in options::PROJECT_TYPE_INFO.values() {
     }
 }
 
-if project.kind != "embedded" {
-    file::delete("Embed.toml");
-    file::delete("memory.x");
-    file::delete("openocd.cfg");
-    file::delete("openocd.gdb");
+if project_type == "Minimal" {
+    file::delete("build.rs");
+}
+
+if project.kind == "embedded" {
+    file::rename("build.rs", "firmware/build.rs");
+    file::rename("Cargo.toml", "firmware/Cargo.toml");
+    file::rename("src", "firmware/src");
+} else {
+    file::delete("firmware");
 }
 
 ////////////////////////////////////////////////////////////////////////////////

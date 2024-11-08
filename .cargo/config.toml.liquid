@@ -1,5 +1,5 @@
 [alias]
-xtask = "run --package xtask --"{% if project-type == "CLI" %}
+xtask = "run --manifest-path xtask/Cargo.toml --"{% if project-type == "CLI" %}
 
 # Ensure the binary is statically linked when using musl so that it is actually
 # portable.
@@ -16,12 +16,4 @@ rustflags = [
 rustflags = ["-C", "target-feature=+crt-static"]{% elsif project-kind == "embedded" %}
 
 [build]
-target = "{{target}}"
-
-[target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip {{chip}}"
-rustflags = [
-    "-C", "linker=flip-link",
-    "-C", "link-arg=-Tlink.x",
-    "-C", "link-arg=-Tdefmt.x",
-]{% endif %}
+target-dir = "target"{% endif %}
