@@ -4,15 +4,46 @@
 mod hello;
 mod helpers;
 
-use clap::Parser;
-use eyre::Result;
+use clap::{ArgAction, Parser, Subcommand};
+use eyre::{Report, Result};
+use tracing_subscriber::fmt::format::FmtSpan;
 
 use self::hello::Hello;
 
+/// The long version information.
+const LONG_VERSION: &str = concat!(
+    env!("CARGO_PKG_VERSION"),
+    "\nrevision: ",
+    env!("REVISION"),
+    "\nfeatures: ",
+    env!("FEATURES"),
+    "\ntarget: ",
+    env!("TARGET"),
+    "\nprofile: ",
+    env!("PROFILE"),
+    "\nbuilt by: ",
+    env!("BUILT_BY"),
+);
+
 /// {{description}}
 #[derive(Debug, Parser)]
-#[command(author, version = env!("VERSION_WITH_GIT"))]
-pub enum {{crate_name|upper_camel_case}} {
+#[command(
+    author,
+    version = env!("VERSION_WITH_GIT"),
+    long_version = LONG_VERSION,
+)]
+pub struct {{crate_name|upper_camel_case}} {
+    /// The command to run.
+    #[command(subcommand)]
+    command: {{crate_name|upper_camel_case}}Command,
+    /// The verbosity level.
+    #[arg(short = 'v', action = ArgAction::Count, global = true)]
+    verbosity: u8,
+}
+
+/// The subcommands of `{{project-name}}`.
+#[derive(Debug, Subcommand)]
+pub enum {{crate_name|upper_camel_case}}Command {
     /// Say hello.
     Hello(Hello),
 }
@@ -26,14 +57,48 @@ trait Command {
 impl {{crate_name|upper_camel_case}} {
     /// Runs {{project-name}}.
     pub fn run() -> Result<()> {
-        let result = match Self::parse() {
-            Self::Hello(hello) => hello.run(),
-        };
+        let args = Self::parse();
+        setup_tracing(args.verbosity);
 
-        match result {
+        match args.command.run() {
             Err(error) => handle_errors(error),
             Ok(()) => Ok(()),
         }
+    }
+}
+
+impl {{crate_name|upper_camel_case}}Command {
+    /// Runs the given command.
+    pub fn run(&self) -> Result<()> {
+        match self {
+            Self::Hello(hello) => hello.run(),
+        }
+    }
+}
+
+/// Configures the tracing subscriber given the verbosity.
+fn setup_tracing(verbosity: u8) {
+    tracing_subscriber::fmt()
+        .with_env_filter(env_filter(verbosity))
+        .with_span_events(span_events(verbosity))
+        .init();
+}
+
+/// Returns the trace filter to apply given the verbosity.
+fn env_filter(verbosity: u8) -> &'static str {
+    match verbosity {
+        0 => "off",
+        1 => "git_z=info",
+        2 => "git_z=debug",
+        3_u8..=u8::MAX => "git_z=trace",
+    }
+}
+
+/// Returns the span events to enable given the verbosity.
+fn span_events(verbosity: u8) -> FmtSpan {
+    match verbosity {
+        0..=3 => FmtSpan::NONE,
+        4..=u8::MAX => FmtSpan::ACTIVE,
     }
 }
 
@@ -46,7 +111,7 @@ impl {{crate_name|upper_camel_case}} {
 // }
 
 /// Handles typical usage errors to enhance their output.
-fn handle_errors(error: color_eyre::Report) -> Result<()> {
+fn handle_errors(error: Report) -> Result<()> {
     // let handling = if let Some(error) = error.downcast_ref::<ErrorType>() {
     //     handle_error_type(error)
     // } else {
@@ -56,7 +121,12 @@ fn handle_errors(error: color_eyre::Report) -> Result<()> {
     // match handling {
     //     ErrorHandling::Return(error) => Err(error),
     //     ErrorHandling::Exit(code) => {
-    //         #[allow(clippy::exit)]
+    //         #[expect(
+    //             clippy::exit,
+    //             reason = "This function is purposefully written to handle \
+    //                 errors, write a useful message and exit with an error \
+    //                 code. This is the only place in the code where it is done."
+    //         )]
     //         std::process::exit(code);
     //     }
     // }
@@ -71,5 +141,5 @@ fn handle_errors(error: color_eyre::Report) -> Result<()> {
 //         }
 //     }
 
-//     ErrorHandling::Exit(1)
+//     ErrorHandling::Exit(exitcode::USAGE)
 // }

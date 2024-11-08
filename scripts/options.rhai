@@ -11,18 +11,22 @@ export const PROJECT_TYPE_INFO = #{
     "Minimal": #{
         kind: "std",
         src: "src-minimal",
+        tests: (),
     },
     "CLI": #{
         kind: "std",
         src: "src-cli",
+        tests: "tests-cli",
     },
     "Embedded (Bare-metal)": #{
         kind: "embedded",
         src: "src-bare-metal",
+        tests: (),
     },
     "Embedded (RTIC)": #{
         kind: "embedded",
         src: "src-rtic",
+        tests: (),
     },
 };
 

@@ -50,18 +50,29 @@ for l in options::LICENSES {
 }
 
 file::rename(`${project.src}`, "src");
+if project.tests != () {
+    file::rename(`${project.tests}`, "tests");
+}
+
 for type in options::PROJECT_TYPE_INFO.values() {
     if type != project {
         file::delete(`${type.src}`);
+        if type.tests != () {
+            file::delete(`${type.tests}`);
+        }
     }
 }
 
-if project.kind != "embedded" {
-    file::delete(".cargo");
-    file::delete("Embed.toml");
-    file::delete("memory.x");
-    file::delete("openocd.cfg");
-    file::delete("openocd.gdb");
+if project_type == "Minimal" {
+    file::delete("build.rs");
+}
+
+if project.kind == "embedded" {
+    file::rename("build.rs", "firmware/build.rs");
+    file::rename("Cargo.toml", "firmware/Cargo.toml");
+    file::rename("src", "firmware/src");
+} else {
+    file::delete("firmware");
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -17,9 +17,13 @@ description = "{{description}}"
 clap = { version = "4", features = ["derive", "wrap_help"] }
 color-eyre = "0.6"
 colored = "2"
+exitcode = "1"
 eyre = "0.6"
+indoc = "2"
 inquire = "0.7"
 thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 {% elsif project-type == "Embedded (Bare-metal)" %}
 cortex-m-rt = "0.7"
 {% elsif project-type == "Embedded (RTIC)" %}
@@ -35,7 +39,17 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 version = "0.7.5"
 features = ["critical-section-single-core", "inline-asm"]
 {% endif %}
+{% if project-type == "CLI" %}
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
+[target.'cfg(not(windows))'.dev-dependencies]
+assert_cmd = "2"
+rexpect = "0.5"
+# assert_fs = "1"
+# predicates = "3"
+{% endif %}
 {% if project-kind == "embedded" %}
 # For `cargo fix` to work.
 [[bin]]
@@ -50,7 +64,10 @@ codegen-units = 1
 lto = true
 debug = true
 {% endif %}
-
+{% if project-kind != "embedded" %}
+[workspace]
+members = ["xtask"]
+{% endif %}
 [lints.rust]
 # Forbidden
 unsafe_code = "forbid"
@@ -74,8 +91,9 @@ single_use_lifetimes = "warn"
 multiple_unsafe_ops_per_block = "deny"
 undocumented_unsafe_blocks = "deny"
 
-# Enable all pedantic warnings except a few.
+# Enable all pedantic warnings…
 pedantic = { level = "warn", priority = -1 }
+# …except a few.
 case_sensitive_file_extension_comparisons = "allow"
 inline_always = "allow"
 linkedlist = "allow"
@@ -85,9 +103,12 @@ must_use_candidate = "allow"
 
 # Enable many restrictions.
 alloc_instead_of_core = "warn"
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
 as_conversions = "warn"
 as_underscore = "warn"
 assertions_on_result_states = "warn"
+cfg_not_test = "warn"
 clone_on_ref_ptr = "warn"
 dbg_macro = "warn"
 default_numeric_fallback = "warn"
@@ -99,6 +120,7 @@ empty_structs_with_brackets = "warn"
 error_impl_error = "warn"
 exit = "warn"
 expect_used = "warn"
+field_scoped_visibility_modifiers = "warn"
 filetype_is_file = "warn"
 float_cmp_const = "warn"
 format_push_string = "warn"
@@ -124,6 +146,7 @@ pub_without_shorthand = "warn"
 rc_buffer = "warn"
 rc_mutex = "warn"
 redundant_type_annotations = "warn"
+renamed_function_params = "warn"
 rest_pat_in_fully_bound_structs = "warn"
 same_name_method = "warn"
 semicolon_inside_block = "warn"
@@ -133,11 +156,11 @@ string_slice = "warn"
 string_to_string = "warn"
 tests_outside_test_module = "warn"
 todo = "warn"
-try_err = "warn"
 unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unneeded_field_pattern = "warn"
 unseparated_literal_suffix = "warn"
+unused_result_ok = "warn"
 unwrap_in_result = "warn"
 unwrap_used = "warn"
 verbose_file_reads = "warn"

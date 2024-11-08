@@ -1,10 +1,19 @@
-[build]
-target = "{{target}}"
+[alias]
+xtask = "run --manifest-path xtask/Cargo.toml --"{% if project-type == "CLI" %}
 
-[target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip {{chip}}"
+# Ensure the binary is statically linked when using musl so that it is actually
+# portable.
+[target.x86_64-unknown-linux-musl]
 rustflags = [
-    "-C", "linker=flip-link",
-    "-C", "link-arg=-Tlink.x",
-    "-C", "link-arg=-Tdefmt.x",
+    "-C", "target-feature=+crt-static",
+    "-C", "link-self-contained=yes",
 ]
+
+# Ensure the binary is statically linked on Windows as well so that it does not
+# depend on the vcruntime DLL (installed by Visual C++ Redistribuable, but not
+# available on fresh installs).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]{% elsif project-kind == "embedded" %}
+
+[build]
+target-dir = "target"{% endif %}
