@@ -21,7 +21,7 @@ exitcode = "1"
 eyre = "0.6"
 indoc = "2"
 inquire = "0.7"
-thiserror = "1"
+thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 {% elsif project-type == "Embedded (Bare-metal)" %}
@@ -46,7 +46,7 @@ serde_json = "1"
 
 [target.'cfg(not(windows))'.dev-dependencies]
 assert_cmd = "2"
-rexpect = "0.5"
+rexpect = "0.6"
 # assert_fs = "1"
 # predicates = "3"
 {% endif %}
