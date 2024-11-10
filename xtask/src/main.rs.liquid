@@ -225,49 +225,53 @@ fn test(ctx: &mut Context) {
 }
 
 fn check_unused_deps(ctx: &mut Context) {
-    #[cfg(not(target_os = "windows"))]{% if project-kind == "embedded" %}
+    #[cfg(not(target_os = "windows"))]
     {
         action!(
-            ctx,
-            cwd: "firmware",
-            "Looking for unused dependencies in firmware packages",
-            "nix develop -L ..#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --keep-going",
+            ctx,{% if project-kind == "embedded" %}
+            cwd: "firmware",{% endif %}
+            "Looking for unused dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
+            "nix develop -L {% if project-kind == "embedded" %}.{% endif %}.#udeps -c cargo hack udeps --workspace --feature-powerset --keep-going",
         );
+
+        action!(
+            ctx,{% if project-kind == "embedded" %}
+            cwd: "firmware",{% endif %}
+            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
+            "nix develop -L {% if project-kind == "embedded" %}.{% endif %}.#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --keep-going",
+        );{% if project-kind == "embedded" %}
 
         action!(
             ctx,
             cwd: "xtask",
             "Looking for unused dependencies in xtask",
             "nix develop -L ..#udeps -c cargo hack udeps",
-        );
-    }{% else %}
-    action!(
-        ctx,
-        "Looking for unused dependencies",
-        "nix develop -L .#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --keep-going",
-    );{% endif %}
+        );{% endif %}
+    }
 
-    #[cfg(target_os = "windows")]{% if project-kind == "embedded" %}
+    #[cfg(target_os = "windows")]
     {
         action!(
-            ctx,
-            cwd: "firmware",
-            "Looking for unused dependencies in firmware packages",
-            "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --keep-going",
+            ctx,{% if project-kind == "embedded" %}
+            cwd: "firmware",{% endif %}
+            "Looking for unused dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
+            "cargo +nightly hack udeps --workspace --feature-powerset --keep-going",
         );
+
+        action!(
+            ctx,{% if project-kind == "embedded" %}
+            cwd: "firmware",{% endif %}
+            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
+            "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --keep-going",
+        );{% if project-kind == "embedded" %}
 
         action!(
             ctx,
             cwd: "xtask",
             "Looking for unused dependencies in xtask",
             "cargo +nightly hack udeps",
-        );
-    }{% else %}
-    action!(
-        ctx,
-        "Looking for unused dependencies",
-        "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --keep-going",
-    );{% endif %}
+        );{% endif %}
+    }
 }
 {% if project-type == "CLI" %}
 fn check_packages(ctx: &mut Context) {
