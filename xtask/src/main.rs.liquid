@@ -177,7 +177,7 @@ fn build(ctx: &mut Context) {
         ctx,{% if project-kind == "embedded" %}
         cwd: "firmware",{% endif %}
         "Building all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-        "cargo hack build --workspace --all-targets --feature-powerset --keep-going",
+        "cargo hack build --no-dev-deps --workspace --feature-powerset --keep-going",
     );{% if project-kind == "embedded" %}
 
     action!(
@@ -191,6 +191,13 @@ fn build(ctx: &mut Context) {
         ctx,{% if project-kind == "embedded" %}
         cwd: "firmware",{% endif %}
         "Checking for clippy warnings in all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
+        "cargo hack clippy --no-dev-deps --workspace --feature-powerset --keep-going -- -D warnings",
+    );
+
+    action!(
+        ctx,{% if project-kind == "embedded" %}
+        cwd: "firmware",{% endif %}
+        "Checking for clippy warnings in all{% if project-kind == "embedded" %} firmware{% endif %} packages for all targets with all feature combinations",
         "cargo hack clippy --workspace --all-targets --feature-powerset --keep-going -- -D warnings",
     );{% if project-kind == "embedded" %}
 
