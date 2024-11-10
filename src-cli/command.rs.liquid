@@ -123,9 +123,8 @@ fn handle_errors(error: Report) -> Result<()> {
     //     ErrorHandling::Exit(code) => {
     //         #[expect(
     //             clippy::exit,
-    //             reason = "This function is purposefully written to handle \
-    //                 errors, write a useful message and exit with an error \
-    //                 code. This is the only place in the code where it is done."
+    //             reason = "this function is purposefully written to handle \
+    //                 errors, write a useful message and exit with an error code"
     //         )]
     //         std::process::exit(code);
     //     }
