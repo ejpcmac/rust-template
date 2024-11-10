@@ -221,6 +221,10 @@ fn test(ctx: &mut Context) {
             "Running the tests for all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
             "cargo hack nextest run --workspace --feature-powerset --keep-going",
         ),
+        // step!(
+        //     "Running the doctests for all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
+        //     "cargo hack test --doc --workspace{% if project-kind != "embedded" %} --exclude xtask{% endif %} --feature-powerset --keep-going",
+        // ),
     );
 }
 
