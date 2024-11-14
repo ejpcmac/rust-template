@@ -70,7 +70,7 @@ jobs:
         run: |
           version=${{"{{"}} needs.version.outputs.version {{"}}"}}
           target=${{"{{"}} matrix.target {{"}}"}}
-          echo "name=git-z-$version-$target" >> "$GITHUB_OUTPUT"
+          echo "name={{project-name}}-$version-$target" >> "$GITHUB_OUTPUT"
       - name: Install the Rust toolchain
         run: rustup target add ${{"{{"}} matrix.target {{"}}"}}
       - name: Build the binary
@@ -79,10 +79,10 @@ jobs:
           cargo build --release --target=${{"{{"}} matrix.target {{"}}"}}
           mkdir dist
           if [ "${{"{{"}} matrix.runner {{"}}"}}" = "windows-latest" ]; then
-            mv target/${{"{{"}} matrix.target {{"}}"}}/release/git-z.exe \
+            mv target/${{"{{"}} matrix.target {{"}}"}}/release/{{project-name}}.exe \
               dist/${{"{{"}} steps.name.outputs.name {{"}}"}}.exe
           else
-            mv target/${{"{{"}} matrix.target {{"}}"}}/release/git-z \
+            mv target/${{"{{"}} matrix.target {{"}}"}}/release/{{project-name}} \
               dist/${{"{{"}} steps.name.outputs.name {{"}}"}}
           fi
       - name: Strip the binary
@@ -127,7 +127,7 @@ jobs:
       - name: Install cargo-wix
         run: cargo install cargo-wix
       - name: Build the MSI package
-        run: cargo wix --package git-z --nocapture
+        run: cargo wix --package {{project-name}} --nocapture
       - name: Upload the MSI package
         uses: actions/upload-artifact@v4
         with:
