@@ -140,7 +140,10 @@
                 motd = ''
 
                   {202}🔨 Welcome to the {{project-name}} devshell!{reset}
-                '';
+                '';{% if project-type == "CLI" %}
+
+                # TODO: Uncomment to include the runtime dependencies.
+                # packagesFrom = [ self'.packages.default ];{% endif %}
 
                 packages =
                   buildToolchain
@@ -172,7 +175,10 @@
               };
 
               ci = {
-                name = "{{project-name}} CI";
+                name = "{{project-name}} CI";{% if project-type == "CLI" %}
+
+                # TODO: Uncomment to include the runtime dependencies.
+                # packagesFrom = [ self'.packages.default ];{% endif %}
 
                 packages =
                   buildToolchain
