@@ -77,6 +77,7 @@
               git-z = inputs'.git-z.packages.git-z;
 
               buildToolchain = with pkgs; [
+                pkg-config
                 rust-toolchain{% if project-kind == "embedded" %}
                 flip-link{% endif %}
               ] ++ lib.optionals (!stdenv.isDarwin) [
@@ -112,6 +113,15 @@
                 probe-rs{% endif %}
               ];
 
+              # NOTE: pkg-config needs this variable to detect libraries
+              # installed in the devshell.
+              buildEnv = [
+                {
+                  name = "PKG_CONFIG_PATH";
+                  prefix = "$DEVSHELL_DIR/lib/pkgconfig";
+                }
+              ];
+
               ideEnv = [
                 {
                   name = "NIX_PATH";
@@ -139,7 +149,8 @@
                   ++ developmentTools;
 
                 env =
-                  ideEnv;
+                  buildEnv
+                  ++ideEnv;
 
                 commands = [{% if project-type == "CLI" %}
                   {
@@ -166,6 +177,9 @@
                 packages =
                   buildToolchain
                   ++ checkToolchain;
+
+                env =
+                  buildEnv;
               };{% if project-type == "CLI" %}
 
               # NOTE: Use the musl target to build a statically-linked binary.
