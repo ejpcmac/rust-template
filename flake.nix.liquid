@@ -120,6 +120,13 @@
                   name = "PKG_CONFIG_PATH";
                   prefix = "$DEVSHELL_DIR/lib/pkgconfig";
                 }
+              ];{% endif %}{% if project-kind != "embedded" %}
+
+              devEnv = [
+                {
+                  name = "RUSTFLAGS";
+                  value = "-Clink-arg=-fuse-ld=${pkgs.mold}/bin/mold";
+                }
               ];{% endif %}
 
               ideEnv = [
@@ -153,6 +160,7 @@
 
                 env =
                   {% if project-type == "CLI" %}buildEnv
+                  ++{% endif %}{% if project-kind != "embedded" %}devEnv
                   ++{% endif %}ideEnv;
 
                 commands = [{% if project-type == "CLI" %}
