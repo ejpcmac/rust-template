@@ -76,8 +76,8 @@
             let
               git-z = inputs'.git-z.packages.git-z;
 
-              buildToolchain = with pkgs; [
-                pkg-config
+              buildToolchain = with pkgs; [{% if project-type == "CLI" %}
+                pkg-config{% endif %}
                 rust-toolchain{% if project-kind == "embedded" %}
                 flip-link{% endif %}
               ] ++ lib.optionals (!stdenv.isDarwin) [
@@ -111,7 +111,7 @@
                 gcc-arm-embedded
                 openocd
                 probe-rs{% endif %}
-              ];
+              ];{% if project-type == "CLI" %}
 
               # NOTE: pkg-config needs this variable to detect libraries
               # installed in the devshell.
@@ -120,7 +120,7 @@
                   name = "PKG_CONFIG_PATH";
                   prefix = "$DEVSHELL_DIR/lib/pkgconfig";
                 }
-              ];
+              ];{% endif %}
 
               ideEnv = [
                 {
@@ -152,8 +152,8 @@
                   ++ developmentTools;
 
                 env =
-                  buildEnv
-                  ++ideEnv;
+                  {% if project-type == "CLI" %}buildEnv
+                  ++{% endif %}ideEnv;
 
                 commands = [{% if project-type == "CLI" %}
                   {
@@ -182,10 +182,10 @@
 
                 packages =
                   buildToolchain
-                  ++ checkToolchain;
+                  ++ checkToolchain;{% if project-type == "CLI" %}
 
                 env =
-                  buildEnv;
+                  buildEnv;{% endif %}
               };{% if project-type == "CLI" %}
 
               # NOTE: Use the musl target to build a statically-linked binary.
