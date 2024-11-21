@@ -37,6 +37,7 @@ list = [
     "t:cargo@minimal",
     "t:cargo@rtic",
     "t:changelog",
+    "t:clippy",
     "t:committed",
     "t:contributing",
     "t:devshell",
