@@ -51,6 +51,7 @@ list = [
     "t:git-z",
     "t:gitignore",
     "t:gitignore@embedded",
+    "t:gitsetup",
     "t:license",
     "t:memory.x",
     "t:openocd",
