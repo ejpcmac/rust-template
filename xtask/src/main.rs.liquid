@@ -52,6 +52,7 @@ fn check(subcommand: Option<&str>) {
             check_commits(&mut ctx);
             check_format(&mut ctx);
             build(&mut ctx);
+            check_doc(&mut ctx);
             test(&mut ctx);
             check_unused_deps(&mut ctx);{% if project-type == "CLI" %}
             check_packages(&mut ctx);{% endif %}
@@ -59,6 +60,7 @@ fn check(subcommand: Option<&str>) {
         Some("commits") => check_commits(&mut ctx),
         Some("format") => check_format(&mut ctx),
         Some("build") => build(&mut ctx),
+        Some("doc") => check_doc(&mut ctx),
         Some("test") => test(&mut ctx),
         Some("unused-deps") => check_unused_deps(&mut ctx),{% if project-type == "CLI" %}
         Some("packages") => check_packages(&mut ctx),{% endif %}
@@ -70,7 +72,7 @@ fn check(subcommand: Option<&str>) {
 
 fn check_usage() {
     let name = env::args().next().unwrap();
-    eprintln!("usage: {name} check [commits|format|build|test|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]");
+    eprintln!("usage: {name} check [commits|format|build|doc|test|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]");
     process::exit(1);
 }
 
@@ -201,6 +203,17 @@ fn build(ctx: &mut Context) {
         "Checking for clippy warnings in xtask",
         "cargo hack clippy -- -D warnings",
     );{% endif %}
+}
+
+fn check_doc(ctx: &mut Context) {
+    ctx.sh.set_var("RUSTDOCFLAGS", "-D warnings");
+
+    action!(
+        ctx,{% if project-kind == "embedded" %}
+        cwd: "firmware",{% endif %}
+        "Checking that the documentation builds without warnings{% if project-kind == "embedded" %} for firmware packages{% endif %}",
+        "cargo hack doc --workspace --exclude xtask --feature-powerset --keep-going --no-deps --document-private-items"
+    );
 }
 
 fn test(ctx: &mut Context) {
