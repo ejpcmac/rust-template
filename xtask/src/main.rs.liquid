@@ -48,12 +48,6 @@ fn check(subcommand: Option<&str>) {
     let mut ctx = Context::new();
 
     match subcommand {
-        Some("commits") => check_commits(&mut ctx),
-        Some("format") => check_format(&mut ctx),
-        Some("build") => build(&mut ctx),
-        Some("doc") => check_doc(&mut ctx),
-        Some("test") => test(&mut ctx),
-        Some("unused-deps") => check_unused_deps(&mut ctx),
         None => {
             check_commits(&mut ctx);
             check_format(&mut ctx);
@@ -62,6 +56,12 @@ fn check(subcommand: Option<&str>) {
             test(&mut ctx);
             check_unused_deps(&mut ctx);
         }
+        Some("commits") => check_commits(&mut ctx),
+        Some("format") => check_format(&mut ctx),
+        Some("build") => build(&mut ctx),
+        Some("doc") => check_doc(&mut ctx),
+        Some("test") => test(&mut ctx),
+        Some("unused-deps") => check_unused_deps(&mut ctx),
         _ => check_usage(),
     }
 
