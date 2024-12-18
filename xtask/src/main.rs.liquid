@@ -48,12 +48,6 @@ fn check(subcommand: Option<&str>) {
     let mut ctx = Context::new();
 
     match subcommand {
-        Some("commits") => check_commits(&mut ctx),
-        Some("format") => check_format(&mut ctx),
-        Some("build") => build(&mut ctx),
-        Some("test") => test(&mut ctx),
-        Some("unused-deps") => check_unused_deps(&mut ctx),{% if project-type == "CLI" %}
-        Some("packages") => check_packages(&mut ctx),{% endif %}
         None => {
             check_commits(&mut ctx);
             check_format(&mut ctx);
@@ -62,6 +56,12 @@ fn check(subcommand: Option<&str>) {
             check_unused_deps(&mut ctx);{% if project-type == "CLI" %}
             check_packages(&mut ctx);{% endif %}
         }
+        Some("commits") => check_commits(&mut ctx),
+        Some("format") => check_format(&mut ctx),
+        Some("build") => build(&mut ctx),
+        Some("test") => test(&mut ctx),
+        Some("unused-deps") => check_unused_deps(&mut ctx),{% if project-type == "CLI" %}
+        Some("packages") => check_packages(&mut ctx),{% endif %}
         _ => check_usage(),
     }
 
