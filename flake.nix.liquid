@@ -160,8 +160,8 @@
 
                 env =
                   {% if project-type == "CLI" %}buildEnv
-                  ++{% endif %}{% if project-kind != "embedded" %}devEnv
-                  ++{% endif %}ideEnv;
+                  ++ {% endif %}{% if project-kind != "embedded" %}devEnv
+                  ++ {% endif %}ideEnv;
 
                 commands = [{% if project-type == "CLI" %}
                   {
