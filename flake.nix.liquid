@@ -221,10 +221,10 @@
               udeps = {
                 name = "cargo-udeps";
                 packages = with pkgs; [{% if project-kind == "embedded" %}
-                  (rust-bin.nightly."2024-10-28".minimal.override {
+                  (rust-bin.nightly."2025-02-20".minimal.override {
                     targets = [ "{{target}}" ];
                   }){% else %}
-                  rust-bin.nightly."2024-10-28".minimal{% endif %}
+                  rust-bin.nightly."2025-02-20".minimal{% endif %}
                   clang
                   cargo-hack
                   cargo-udeps
