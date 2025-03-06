@@ -2,7 +2,7 @@
 target = "{{target}}"
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip {{chip}}"
+runner = "probe-rs run --chip {{chip}}"
 rustflags = [
     "-C", "linker=flip-link",
     "-C", "link-arg=-Tlink.x",
