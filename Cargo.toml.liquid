@@ -4,12 +4,13 @@ version = "0.1.0-dev.0"
 authors = ["{{authors}}"]
 # See https://crates.io/category_slugs
 categories = [{% if project-type == "CLI" %}"command-line-utilities"{% endif %}]
-edition = "2021"
+edition = "2024"
 homepage = "https://github.com/{{github-username}}/{{project-name}}"
 keywords = []
 license = "{{license-spdx}}"
 repository = "https://github.com/{{github-username}}/{{project-name}}"
 resolver = "2"
+rust-version = "1.85"
 description = "{{description}}"
 
 [dependencies]
