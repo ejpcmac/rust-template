@@ -123,12 +123,4 @@ if project.kind == "embedded" {
     } else {
         variable::set("hal-crate", "device_hal");
     }
-
-    if board != () {
-        variable::set("openocd-target", board.openocd.target);
-        variable::set("openocd-interface", board.openocd.interface);
-    } else {
-        file::delete("openocd.cfg");
-        file::delete("openocd.gdb");
-    }
 }

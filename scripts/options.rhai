@@ -46,10 +46,6 @@ export const BOARDS = [
 export const BOARD_INFO = #{
     "ST Nucleo-L476RG": #{
         chip: "STM32L476RGTx",
-        openocd: #{
-            target: "stm32l4x",
-            interface: "stlink-v2-1",
-        },
     },
 };
 
