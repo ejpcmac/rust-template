@@ -17,9 +17,13 @@ mod app {
     #[local]
     struct LocalResources {}
 
+    /// The name and version of the firmware.
+    const FW_INFO: &str =
+        concat!(env!("CARGO_PKG_NAME"), " ", env!("VERSION_WITH_GIT"));
+
     #[init]
     fn init(cx: init::Context) -> (SharedResources, LocalResources) {
-        defmt::info!("Firmware starting...");
+        defmt::info!("Starting {}...", FW_INFO);
 
         #[expect(clippy::no_effect_underscore_binding, reason = "not yet used")]
         let _cp = cx.core;
