@@ -34,17 +34,17 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 {% elsif project-type == "Embedded (Bare-metal)" %}
 cortex-m-rt = "0.7"
 {% elsif project-type == "Embedded (RTIC)" %}
-cortex-m-rtic = "1"
+rtic = { version = "2", features = ["cortex-m", "thumbv7-backend"] }
 {% endif %}
 {% if project-kind == "embedded" %}
+cortex-m = { version = "0.7", features = [
+    "critical-section-single-core",
+    "inline-asm",
+] }
 defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 {{hal-package}}
-
-[dependencies.cortex-m]
-version = "0.7"
-features = ["critical-section-single-core", "inline-asm"]
 {% endif %}
 {% if project-type == "CLI" %}
 [build-dependencies]

@@ -18,9 +18,7 @@ mod app {
     struct LocalResources {}
 
     #[init]
-    fn init(
-        cx: init::Context,
-    ) -> (SharedResources, LocalResources, init::Monotonics) {
+    fn init(cx: init::Context) -> (SharedResources, LocalResources) {
         defmt::info!("Firmware starting...");
 
         #[expect(clippy::no_effect_underscore_binding, reason = "not yet used")]
@@ -35,7 +33,7 @@ mod app {
 
         defmt::info!("Firmware initialised!");
 
-        (SharedResources {}, LocalResources {}, init::Monotonics())
+        (SharedResources {}, LocalResources {})
     }
 
     #[idle]
