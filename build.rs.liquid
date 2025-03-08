@@ -12,14 +12,14 @@ use std::{env, fs, io, process::Command};
 
 use serde::{Deserialize, Serialize};
 {% endif %}
-fn main() {
+fn main() {{"{"}}{% if project-kind == "embedded" %}
+    copy_linker_script();{% endif %}
     define_version_with_git();
     define_revision();
     define_features();
     define_target();
     define_profile();
-    define_built_by();{% if project-kind == "embedded" %}
-    copy_linker_script();{% endif %}
+    define_built_by();
 }{% if project-kind == "embedded" %}
 
 /// Puts the linker script in the out directory so the linker can find it.
@@ -36,14 +36,21 @@ fn main() {
     reason = "any of the following errors is a hard error"
 )]
 fn copy_linker_script() {
+    #[cfg(not(any(feature = "feather-nrf52840", feature = "nucleo-l476rg")))]
+    let memory = &[];
+    #[cfg(feature = "feather-nrf52840")]
+    let memory = include_bytes!("memory/nrf52840.x");
+    #[cfg(feature = "nucleo-l476rg")]
+    let memory = include_bytes!("memory/stm32l476rg.x");
+
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     File::create(out.join("memory.x"))
         .unwrap()
-        .write_all(include_bytes!("memory.x"))
+        .write_all(memory)
         .unwrap();
 
     println!("cargo:rustc-link-search={}", out.display());
-    println!("cargo:rerun-if-changed=memory.x");
+    println!("cargo:rerun-if-changed=memory");
 }{% endif %}
 
 /// Defines a variable containing the version with the Git revision.

@@ -7,9 +7,12 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-#[rtic::app(device = {{hal-crate}}::pac, dispatchers = [])]
+#[rtic::app(device = hal, dispatchers = [])]
 mod app {
-    use {{hal-crate}}::prelude::*;
+    #[cfg(feature = "feather-nrf52840")]
+    use embassy_nrf as hal;
+    #[cfg(feature = "nucleo-l476rg")]
+    use embassy_stm32 as hal;
 
     #[shared]
     struct SharedResources {}
@@ -22,18 +25,11 @@ mod app {
         concat!(env!("CARGO_PKG_NAME"), " ", env!("VERSION_WITH_GIT"));
 
     #[init]
-    fn init(cx: init::Context) -> (SharedResources, LocalResources) {
+    fn init(_cx: init::Context) -> (SharedResources, LocalResources) {
         defmt::info!("Starting {}...", FW_INFO);
 
-        #[expect(clippy::no_effect_underscore_binding, reason = "not yet used")]
-        let _cp = cx.core;
-        let dp = cx.device;
-
-        // Clock configuration.
-        let mut rcc = dp.RCC.constrain();
-        let mut flash = dp.FLASH.constrain();
-        let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
-        let _clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
+        #[expect(clippy::default_trait_access, reason = "for genericity")]
+        let _p = hal::init(Default::default());
 
         defmt::info!("Firmware initialised!");
 

@@ -222,7 +222,7 @@
                 name = "cargo-udeps";
                 packages = with pkgs; [{% if project-kind == "embedded" %}
                   (rust-bin.nightly."2025-03-01".minimal.override {
-                    targets = [ "{{target}}" ];
+                    targets = [ "thumbv7em-none-eabihf" ];
                   }){% else %}
                   rust-bin.nightly."2025-03-01".minimal{% endif %}
                   clang

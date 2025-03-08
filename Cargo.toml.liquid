@@ -17,7 +17,13 @@ description = "{{description}}"
 # NOTE: This feature is enabled in `.vscode/settings.json` and can be used to
 # enable some features when editing the code without impacting the default
 # features.
-rust-analyzer = []
+rust-analyzer = [
+    # "feather-nrf52840",
+    "nucleo-l476rg",
+]
+# Board support
+feather-nrf52840 = ["dep:embassy-nrf"]
+nucleo-l476rg = ["dep:embassy-stm32"]
 
 [dependencies]
 {% if project-type == "CLI" %}
@@ -43,8 +49,15 @@ cortex-m = { version = "0.7", features = [
 ] }
 defmt = "0.3"
 defmt-rtt = "0.4"
+embassy-nrf = { version = "0.3", optional = true, features = [
+    "defmt",
+    "nrf52840",
+] }
+embassy-stm32 = { version = "0.2", optional = true, features = [
+    "defmt",
+    "stm32l476rg",
+] }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
-{{hal-package}}
 {% endif %}
 {% if project-type == "CLI" %}
 [build-dependencies]
