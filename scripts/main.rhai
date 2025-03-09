@@ -71,6 +71,7 @@ for type in options::PROJECT_TYPE_INFO.values() {
 
 if project.kind == "embedded" {
     file::delete("{{project-name}}");
+    file::delete(".github/workflows/release.yml");
 
     file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
     if project_type == "Embedded (Bare-metal)" {
