@@ -1,5 +1,8 @@
 [alias]
-xtask = "run --manifest-path xtask/Cargo.toml --"{% if project-type == "CLI" %}
+xtask = "run --package xtask --"
+
+[build]
+target-dir = "target"{% if project-type == "CLI" %}
 
 # Ensure the binary is statically linked when using musl so that it is actually
 # portable.
@@ -13,7 +16,4 @@ rustflags = [
 # depend on the vcruntime DLL (installed by Visual C++ Redistribuable, but not
 # available on fresh installs).
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]{% elsif project-kind == "embedded" %}
-
-[build]
-target-dir = "target"{% endif %}
+rustflags = ["-C", "target-feature=+crt-static"]{% endif %}

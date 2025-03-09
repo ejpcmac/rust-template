@@ -7,7 +7,7 @@ use std::{
 };
 
 use colored::Colorize;
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 struct Context {
     pub sh: Shell,
@@ -23,20 +23,23 @@ impl Context {
             errors: 0,
         }
     }
-}
+}{% if project-kind == "embedded" %}
+
+const BOARDS: &str = "feather-nrf52840,nucleo-l476rg";{% endif %}
 
 fn main() {
     let mut args = env::args().skip(1);
 
     match args.next().as_deref() {
-        Some("check") => check(args.next().as_deref()),
+        Some("check") => check(args.next().as_deref()),{% if project-kind == "embedded" %}
+        Some("update") => update(),{% endif %}
         _ => usage(),
     }
 }
 
 fn usage() {
     let name = env::args().next().unwrap();
-    eprintln!("usage: {name} <check>");
+    eprintln!("usage: {name} <check{% if project-kind == "embedded" %}|update{% endif %}>");
     process::exit(1);
 }
 
@@ -72,9 +75,27 @@ fn check(subcommand: Option<&str>) {
 
 fn check_usage() {
     let name = env::args().next().unwrap();
-    eprintln!("usage: {name} check [commits|format|build|doc|test|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]");
+    eprintln!(
+        "usage: {name} check [commits|format|build|doc|test|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]"
+    );
     process::exit(1);
+}{% if project-kind == "embedded" %}
+
+fn update() {
+    let mut sh = Shell::new().unwrap();
+    update_workspace(&mut sh, ".", "hardware-agnostic packages");
+    update_workspace(&mut sh, "firmware", "firmware packages");
 }
+
+fn update_workspace(sh: &mut Shell, workspace: &str, name: &str) {
+    let message = format!("\n==> Updating the dependencies for {name}...")
+        .bold()
+        .to_string();
+    println!("{message}");
+
+    let _push_dir = sh.push_dir(workspace);
+    cmd!(sh, "cargo update").run().unwrap();
+}{% endif %}
 
 //////////////////////////////////// Checks ////////////////////////////////////
 
@@ -111,15 +132,8 @@ fn check_commits(ctx: &mut Context) {
 }
 
 fn check_format(ctx: &mut Context) {
-    let editorconfig_excluded_files = [
-        "**.lock",
-        "**.rs",
-        "**.toml",
-        "LICENSE",
-        "templates/*",
-        "wix/gpl-3.0.rtf",
-        "wix/main.wxs",
-    ];
+    let editorconfig_excluded_files =
+        ["**.lock", "**.rs", "**.toml", "LICENSE"];
 
     let exclude = format!({{'"{{{}}}"'}}, editorconfig_excluded_files.join(","));
 
@@ -131,14 +145,14 @@ fn check_format(ctx: &mut Context) {
 {% if project-kind == "embedded" %}
     action!(
         ctx,
-        "Checking that the Rust code is formatted in firmware",
-        "cargo fmt --manifest-path=firmware/Cargo.toml --all --check",
+        "Checking that the Rust code is formatted in hardware-agnostic packages",
+        "cargo fmt --all --check",
     );
 
     action!(
         ctx,
-        "Checking that the Rust code is formatted in xtask",
-        "cargo fmt --manifest-path=xtask/Cargo.toml --all --check",
+        "Checking that the Rust code is formatted in firmware packages",
+        "cargo fmt --manifest-path=firmware/Cargo.toml --all --check",
     );
 {% else %}
     action!(
@@ -170,38 +184,35 @@ fn check_format(ctx: &mut Context) {
 
 fn build(ctx: &mut Context) {
     action!(
-        ctx,{% if project-kind == "embedded" %}
-        cwd: "firmware",{% endif %}
-        "Building all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-        "cargo hack build --no-dev-deps --workspace --feature-powerset --keep-going",
+        ctx,
+        "Building all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all feature combinations",
+        "cargo hack build --no-dev-deps --workspace --feature-powerset --skip rust-analyzer --keep-going",
     );{% if project-kind == "embedded" %}
 
     action!(
         ctx,
-        cwd: "xtask",
-        "Building xtask",
-        "cargo hack build",
+        cwd: "firmware",
+        "Building all firmware packages for all feature combinations",
+        "cargo hack build --no-dev-deps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
     );{% endif %}
 
     action!(
-        ctx,{% if project-kind == "embedded" %}
-        cwd: "firmware",{% endif %}
-        "Checking for clippy warnings in all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-        "cargo hack clippy --no-dev-deps --workspace --feature-powerset --keep-going -- -D warnings",
+        ctx,
+        "Checking for clippy warnings in all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all feature combinations",
+        "cargo hack clippy --no-dev-deps --workspace --feature-powerset --skip rust-analyzer --keep-going -- -D warnings",
     );
 
     action!(
-        ctx,{% if project-kind == "embedded" %}
-        cwd: "firmware",{% endif %}
-        "Checking for clippy warnings in all{% if project-kind == "embedded" %} firmware{% endif %} packages for all targets with all feature combinations",
-        "cargo hack clippy --workspace --all-targets --feature-powerset --keep-going -- -D warnings",
+        ctx,
+        "Checking for clippy warnings in all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all targets and all feature combinations",
+        "cargo hack clippy --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going -- -D warnings",
     );{% if project-kind == "embedded" %}
 
     action!(
         ctx,
-        cwd: "xtask",
-        "Checking for clippy warnings in xtask",
-        "cargo hack clippy -- -D warnings",
+        cwd: "firmware",
+        "Checking for clippy warnings in all firmware packages for all feature combinations",
+        "cargo hack clippy --no-dev-deps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going -- -D warnings",
     );{% endif %}
 }
 
@@ -209,28 +220,33 @@ fn check_doc(ctx: &mut Context) {
     ctx.sh.set_var("RUSTDOCFLAGS", "-D warnings");
 
     action!(
-        ctx,{% if project-kind == "embedded" %}
-        cwd: "firmware",{% endif %}
-        "Checking that the documentation builds without warnings{% if project-kind == "embedded" %} for firmware packages{% endif %}",
-        "cargo hack doc --workspace {% if project-kind != "embedded" %} --exclude xtask{% endif %} --feature-powerset --keep-going --no-deps --document-private-items"
-    );
+        ctx,
+        "Checking that the documentation builds without warnings{% if project-kind == "embedded" %} for hardware-agnostic packages{% endif %}",
+        "cargo hack doc --no-deps --document-private-items --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going"
+    );{% if project-kind == "embedded" %}
+
+    action!(
+        ctx,
+        cwd: "firmware",
+        "Checking that the documentation builds without warnings for firmware packages",
+        "cargo hack doc --no-deps --document-private-items --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going"
+    );{% endif %}
 }
 
 fn test(ctx: &mut Context) {
     action!(
-        ctx,{% if project-kind == "embedded" %}
-        cwd: "firmware",{% endif %}
+        ctx,
         step!(
-            "Building the tests for all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-            "cargo hack nextest run --workspace{% if project-kind != "embedded" %} --exclude xtask{% endif %} --feature-powerset --keep-going --no-run",
+            "Building the tests for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all feature combinations",
+            "cargo hack nextest run --no-run --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
         ),
         step!(
-            "Running the tests for all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-            "cargo hack nextest run --workspace{% if project-kind != "embedded" %} --exclude xtask{% endif %} --feature-powerset --keep-going --no-tests=warn",
+            "Running the tests for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all feature combinations",
+            "cargo hack nextest run --no-tests=warn --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
         ),
         // step!(
-        //     "Running the doctests for all{% if project-kind == "embedded" %} firmware{% endif %} packages with all feature combinations",
-        //     "cargo hack test --doc --workspace{% if project-kind != "embedded" %} --exclude xtask{% endif %} --feature-powerset --keep-going",
+        //     "Running the doctests for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages for all feature combinations",
+        //     "cargo hack test --doc --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
         // ),
     );
 }
@@ -239,48 +255,44 @@ fn check_unused_deps(ctx: &mut Context) {
     #[cfg(not(target_os = "windows"))]
     {
         action!(
-            ctx,{% if project-kind == "embedded" %}
-            cwd: "firmware",{% endif %}
-            "Looking for unused dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
-            "nix develop -L {% if project-kind == "embedded" %}.{% endif %}.#udeps -c cargo hack udeps --workspace --feature-powerset --keep-going",
+            ctx,
+            "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+            "nix develop -L .#udeps -c cargo hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
         );
 
         action!(
-            ctx,{% if project-kind == "embedded" %}
-            cwd: "firmware",{% endif %}
-            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
-            "nix develop -L {% if project-kind == "embedded" %}.{% endif %}.#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --keep-going",
+            ctx,
+            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+            "nix develop -L .#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
         );{% if project-kind == "embedded" %}
 
         action!(
             ctx,
-            cwd: "xtask",
-            "Looking for unused dependencies in xtask",
-            "nix develop -L ..#udeps -c cargo hack udeps",
+            cwd: "firmware",
+            "Looking for unused dependencies in firmware packages",
+            "nix develop -L ..#udeps -c cargo hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
         );{% endif %}
     }
 
     #[cfg(target_os = "windows")]
     {
         action!(
-            ctx,{% if project-kind == "embedded" %}
-            cwd: "firmware",{% endif %}
-            "Looking for unused dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
-            "cargo +nightly hack udeps --workspace --feature-powerset --keep-going",
+            ctx,
+            "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+            "cargo +nightly hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
         );
 
         action!(
-            ctx,{% if project-kind == "embedded" %}
-            cwd: "firmware",{% endif %}
-            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in firmware packages{% endif %}",
-            "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --keep-going",
+            ctx,
+            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+            "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
         );{% if project-kind == "embedded" %}
 
         action!(
             ctx,
-            cwd: "xtask",
-            "Looking for unused dependencies in xtask",
-            "cargo +nightly hack udeps",
+            cwd: "firmware",
+            "Looking for unused dependencies in firmware packages",
+            "cargo +nightly hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
         );{% endif %}
     }
 }

@@ -10,22 +10,37 @@ export const PROJECT_TYPES = [
 export const PROJECT_TYPE_INFO = #{
     "Minimal": #{
         kind: "std",
-        src: "src-minimal",
+        src: #{
+            src: "{{project-name}}/src-minimal",
+            dst: "{{project-name}}/src",
+        },
         tests: (),
     },
     "CLI": #{
         kind: "std",
-        src: "src-cli",
-        tests: "tests-cli",
+        src: #{
+            src: "{{project-name}}/src-cli",
+            dst: "{{project-name}}/src",
+        },
+        tests: #{
+            src: "{{project-name}}/tests-cli",
+            dst: "{{project-name}}/tests",
+        },
     },
     "Embedded (Bare-metal)": #{
         kind: "embedded",
-        src: "src-bare-metal",
+        src: #{
+            src: "firmware/{{project-name}}-fw/src-bare-metal",
+            dst: "firmware/{{project-name}}-fw/src",
+        },
         tests: (),
     },
     "Embedded (RTIC)": #{
         kind: "embedded",
-        src: "src-rtic",
+        src: #{
+            src: "firmware/{{project-name}}-fw/src-rtic",
+            dst: "firmware/{{project-name}}-fw/src",
+        },
         tests: (),
     },
 };

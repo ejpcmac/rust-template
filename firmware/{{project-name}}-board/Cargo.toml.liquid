@@ -1,0 +1,35 @@
+[package]
+name = "{{project-name}}-board"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Board support crate for development boards."
+
+[features]
+# NOTE: This feature is enabled in `.vscode/settings.json` and can be used to
+# enable some features when editing the code without impacting the default
+# features.
+rust-analyzer = [
+    # "feather-nrf52840",
+    "nucleo-l476rg",
+]
+# Board support
+feather-nrf52840 = ["dep:embassy-nrf"]
+nucleo-l476rg = ["dep:embassy-stm32"]
+
+[dependencies]
+embassy-nrf = { version = "0.3", optional = true, features = [
+    "defmt",
+    "nrf52840",
+] }
+embassy-stm32 = { version = "0.2", optional = true, features = [
+    "defmt",
+    "stm32l476rg",
+] }
+
+[lints]
+workspace = true

@@ -15,9 +15,10 @@
         }
     },
     "rewrap.autoWrap.enabled": true,
-"rust-analyzer.cargo.features": ["rust-analyzer"],
+    "rust-analyzer.cargo.features": ["rust-analyzer"],
     "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.server.path": "rust-analyzer",
+    "rust-analyzer.server.path": "rust-analyzer",{% if project-kind == "embedded" %}
+    "rust-analyzer.linkedProjects": ["Cargo.toml", "firmware/Cargo.toml"],{% endif %}
     "[json]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },

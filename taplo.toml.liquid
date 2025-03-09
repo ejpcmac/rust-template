@@ -1,4 +1,10 @@
-include = ["*.toml", ".config/*.toml",{% if project-kind == "embedded" %} "firmware/**/*.toml",{% endif %} "xtask/**/*.toml"]
+include = [
+    "*.toml",
+    ".config/*.toml",{% if project-kind == "embedded" %}
+    "firmware/**/*.toml",{% else %}
+    "{{project-name}}/**/*.toml",{% endif %}
+    "xtask/**/*.toml",
+]
 exclude = ["**/.cargo/config.toml"]
 
 [formatting]

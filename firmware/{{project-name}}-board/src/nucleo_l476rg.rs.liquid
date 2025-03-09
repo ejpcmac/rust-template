@@ -1,0 +1,28 @@
+{{license-header}}
+//! Nucleo-L476RG board support.
+
+pub use embassy_stm32 as hal;
+pub use hal::Config;
+
+use hal::gpio::{Level, Output, Speed};
+
+/// A LED.
+pub type Led = Output<'static>;
+
+/// Peripherals of the Nucleo-L476RG
+#[expect(missing_debug_implementations, reason = "not implemented by fields")]
+pub struct Board {
+    /// The LD2 LED.
+    pub ld2: Led,
+}
+
+impl Board {
+    /// Initialises the board.
+    pub fn init(config: Config) -> Self {
+        let p = hal::init(config);
+
+        Self {
+            ld2: Output::new(p.PA5, Level::Low, Speed::Low),
+        }
+    }
+}

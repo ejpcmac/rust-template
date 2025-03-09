@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
-members = [{% if project-kind != "embedded" %}"{{project-name}}", {% endif %}"xtask"]{% if project-kind != "embedded" %}
-default-members = ["{{project-name}}"]{% endif %}
+members = ["{{project-name}}-board", "{{project-name}}-fw"]
 
 [workspace.package]
 version = "0.1.0-dev.0"
@@ -11,5 +10,12 @@ homepage = "https://github.com/{{github-username}}/{{project-name}}"
 license = "{{license-spdx}}"
 repository = "https://github.com/{{github-username}}/{{project-name}}"
 rust-version = "1.85"
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+codegen-units = 1
+lto = true
+debug = true
 
 {{lints}}

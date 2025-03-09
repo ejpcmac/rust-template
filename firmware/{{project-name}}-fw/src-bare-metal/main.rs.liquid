@@ -9,10 +9,7 @@ use panic_probe as _;
 
 use cortex_m_rt::entry;
 
-#[cfg(feature = "feather-nrf52840")]
-use embassy_nrf as _;
-#[cfg(feature = "nucleo-l476rg")]
-use embassy_stm32 as _;
+use {{crate_name}}_board as _;
 
 #[entry]
 #[allow(

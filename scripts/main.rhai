@@ -1,4 +1,5 @@
 import "scripts/options" as options;
+import "scripts/lints" as lints;
 import "scripts/license_header" as license_header;
 
 // Get built-in variables.
@@ -41,6 +42,11 @@ variable::set("license", license);
 variable::set("license-spdx", license_spdx);
 variable::set("license-header", license_header);
 variable::set("github-username", github_username);
+variable::set("lints", lints::LINTS);
+
+////////////////////////////////////////////////////////////////////////////////
+//                               File selection                               //
+////////////////////////////////////////////////////////////////////////////////
 
 file::rename(`LICENSE-${license}`, "LICENSE");
 for l in options::LICENSES {
@@ -49,28 +55,29 @@ for l in options::LICENSES {
     }
 }
 
-file::rename(`${project.src}`, "src");
+file::rename(project.src.src, project.src.dst);
 if project.tests != () {
-    file::rename(`${project.tests}`, "tests");
+    file::rename(project.tests.src, project.tests.dst);
 }
 
 for type in options::PROJECT_TYPE_INFO.values() {
     if type != project {
-        file::delete(`${type.src}`);
+        file::delete(type.src.src);
         if type.tests != () {
-            file::delete(`${type.tests}`);
+            file::delete(type.tests.src);
         }
     }
 }
 
-if project_type == "Minimal" {
-    file::delete("build.rs");
-}
-
 if project.kind == "embedded" {
-    file::rename("build.rs", "firmware/build.rs");
-    file::rename("Cargo.toml", "firmware/Cargo.toml");
-    file::rename("src", "firmware/src");
+    file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
+    file::delete("{{project-name}}");
 } else {
+    if project_type == "Minimal" {
+        file::delete("build.rs");
+    } else {
+        file::rename("build.rs", "{{project-name}}/build.rs");
+    }
+
     file::delete("firmware");
 }
