@@ -17,7 +17,7 @@ macro_rules! warning {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize as _;
 
-        let log_message = $crate::helpers::uncapitalise(&format!($($arg)*));
+        let log_message = {{crate_name}}_helpers::helpers::uncapitalise(&format!($($arg)*));
         let log_message = log_message.trim_end_matches(".");
         tracing::warn!("{log_message}");
 
@@ -32,7 +32,7 @@ macro_rules! error {
     ($($arg:tt)*) => {{"{{"}}
         use colored::Colorize as _;
         let message = indoc::formatdoc!($($arg)*);
-        let message = $crate::helpers::uncapitalise(&message);
+        let message = {{crate_name}}_helpers::helpers::uncapitalise(&message);
         let message = format!("Error: {message}").red().bold();
         eprintln!("{message}");
     {{"}}"}};

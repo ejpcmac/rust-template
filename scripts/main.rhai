@@ -71,6 +71,7 @@ for type in options::PROJECT_TYPE_INFO.values() {
 
 if project.kind == "embedded" {
     file::delete("{{project-name}}");
+    file::delete("{{project-name}}-helpers");
     file::delete(".github/workflows/release.yml");
 
     file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
@@ -81,6 +82,7 @@ if project.kind == "embedded" {
     file::delete("firmware");
 
     if project_type == "Minimal" {
+        file::delete("{{project-name}}-helpers");
         file::delete("build.rs");
     } else {
         file::rename("build.rs", "{{project-name}}/build.rs");
