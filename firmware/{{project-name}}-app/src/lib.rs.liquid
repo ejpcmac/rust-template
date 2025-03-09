@@ -1,0 +1,24 @@
+{{license-header}}
+//! {{description}}
+
+#![cfg_attr(not(test), no_std)]
+
+mod blink;
+
+pub use self::blink::{BlinkTask, Led, Timer};
+
+/// The {{project-name|title_case}} app.
+#[derive(Debug)]
+pub struct {{project-name|upper_camel_case}}App<L: Led, T: Timer> {
+    /// The Blink task.
+    pub blink: BlinkTask<L, T>,
+}
+
+impl<L: Led, T: Timer> {{project-name|upper_camel_case}}App<L, T> {
+    /// Instantiates a new {{project-name|title_case}} app.
+    pub fn new(led: L, timer: T) -> Self {
+        Self {
+            blink: BlinkTask::new(led, timer),
+        }
+    }
+}

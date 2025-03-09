@@ -1,0 +1,130 @@
+{{license-header}}
+//! A task that blinks a LED.
+
+#![expect(
+    async_fn_in_trait,
+    reason = "these traits are for internal usage only, and we need to use \
+        async so that mockall properly generates the mock."
+)]
+
+/// The Blink task.
+#[derive(Debug)]
+pub struct BlinkTask<L: Led, T: Timer> {
+    /// The LED to blink.
+    led: L,
+    /// The timer.
+    timer: T,
+}
+
+/// A LED.
+#[cfg_attr(test, mockall::automock)]
+pub trait Led {
+    /// Sets the LED on.
+    fn on(&mut self);
+    /// Sets the LED off.
+    fn off(&mut self);
+}
+
+/// A timer.
+#[cfg_attr(test, mockall::automock)]
+pub trait Timer {
+    /// Pauses the execution for the specified number of milliseconds.
+    async fn after_ms(&mut self, ms: u32);
+}
+
+impl<L: Led, T: Timer> BlinkTask<L, T> {
+    /// Creates a new Blink task.
+    pub(super) fn new(led: L, timer: T) -> Self {
+        Self { led, timer }
+    }
+
+    /// Runs the Blink task.
+    pub async fn run(&mut self) {
+        defmt::info!("Starting the blink task");
+
+        #[cfg_attr(
+            test,
+            expect(clippy::never_loop, reason = "not looping in tests")
+        )]
+        #[cfg_attr(
+            not(test),
+            expect(clippy::infinite_loop, reason = "the task runs forever")
+        )]
+        loop {
+            self.led.on();
+            defmt::debug!("LED on");
+            self.timer.after_ms(500).await;
+
+            self.led.off();
+            defmt::debug!("LED off");
+            self.timer.after_ms(500).await;
+
+            #[cfg(test)]
+            break;
+        }
+    }
+}
+
+#[cfg(feature = "embedded-hal")]
+impl<P> Led for P
+where
+    P: embedded_hal::digital::OutputPin<Error = core::convert::Infallible>,
+{
+    #[inline]
+    fn on(&mut self) {
+        self.set_high().unwrap();
+    }
+
+    #[inline]
+    fn off(&mut self) {
+        self.set_low().unwrap();
+    }
+}
+
+#[cfg(feature = "embedded-hal")]
+impl<T: embedded_hal_async::delay::DelayNs> Timer for T {
+    #[inline]
+    async fn after_ms(&mut self, ms: u32) {
+        self.delay_ms(ms).await;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use mockall::{Sequence, predicate::eq};
+
+    use super::*;
+
+    #[pollster::test]
+    async fn blinks_the_led() {
+        let mut seq = Sequence::new();
+        let mut led = MockLed::new();
+        let mut timer = MockTimer::new();
+
+        led.expect_on()
+            .once()
+            .in_sequence(&mut seq)
+            .return_const(());
+
+        timer
+            .expect_after_ms()
+            .once()
+            .with(eq(500))
+            .in_sequence(&mut seq)
+            .return_const(());
+
+        led.expect_off()
+            .once()
+            .in_sequence(&mut seq)
+            .return_const(());
+
+        timer
+            .expect_after_ms()
+            .once()
+            .with(eq(500))
+            .in_sequence(&mut seq)
+            .return_const(());
+
+        BlinkTask::new(led, timer).run().await;
+    }
+}

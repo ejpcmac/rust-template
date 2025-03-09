@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["{{project-name}}-board", "{{project-name}}-fw"]
+members = ["{{project-name}}-board", "{{project-name}}-fw"]{% if project-type != "Embedded (Bare-metal)" %}
+exclude = ["{{project-name}}-app"]{% endif %}
 
 [workspace.package]
 version = "0.1.0-dev.0"

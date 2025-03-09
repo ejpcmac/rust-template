@@ -70,14 +70,18 @@ for type in options::PROJECT_TYPE_INFO.values() {
 }
 
 if project.kind == "embedded" {
-    file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
     file::delete("{{project-name}}");
+
+    file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
+    if project_type == "Embedded (Bare-metal)" {
+        file::delete("firmware/{{project-name}}-app");
+    }
 } else {
+    file::delete("firmware");
+
     if project_type == "Minimal" {
         file::delete("build.rs");
     } else {
         file::rename("build.rs", "{{project-name}}/build.rs");
     }
-
-    file::delete("firmware");
 }

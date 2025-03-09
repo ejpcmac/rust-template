@@ -1,5 +1,6 @@
-allowed-duplicate-crates = []
-allowed-idents-below-min-chars = ["c", "i", "j", "n", "s"]
+allowed-duplicate-crates = []{% if project-kind == "embedded" %}
+allowed-idents-below-min-chars = ["i", "j", "n", "p", "s"]{% else %}
+allowed-idents-below-min-chars = ["c", "i", "j", "n", "s"]{% endif %}
 check-private-items = true
 # NOTE: ".." indicates that default values should be included.
 doc-valid-idents = [".."]

@@ -1,0 +1,30 @@
+[package]
+name = "{{project-name}}-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "{{description}}"
+
+[features]
+# NOTE: This feature is enabled in `.vscode/settings.json` and can be used to
+# enable some features when editing the code without impacting the default
+# features.
+rust-analyzer = ["embedded-hal"]
+# Platform support
+embedded-hal = ["dep:embedded-hal", "dep:embedded-hal-async"]
+
+[dependencies]
+defmt = "0.3"
+embedded-hal = { version = "1", optional = true, features = ["defmt-03"] }
+embedded-hal-async = { version = "1", optional = true, features = ["defmt-03"] }
+
+[dev-dependencies]
+mockall = "0.13"
+pollster = { version = "0.4", features = ["macro"] }
+
+[lints]
+workspace = true
