@@ -31,20 +31,25 @@ debug = "commit used for debugging purposes, not to be integrated"
 # Can be one of: "any", "list". If it is "list", a `list` key containing a list
 # of valid scopes is required.
 accept = "list"
-list = [
-    # Binary
-    "main",
-
-    # Lib{% if project-type == "CLI" %}
+list = [{% if project-type == "CLI" %}
+    # CLI
     "cli",
     "command",
     "helpers",
-    "tracing",{% endif %}
-    "lib",{% if project-type == "CLI" %}
+    "tracing",
+    "lib",
 
     # Commands
-    "c:hello",{% endif %}
-
+    "c:hello",
+{% elsif project-kind == "embedded" %}
+    # Firmware
+    "app",
+    "board",
+    "fw",
+{% else %}
+    # Binary
+    "main",
+{% endif %}
     # Cargo xtasks
     "xt:check",{% if project-type == "CLI" %}
 
