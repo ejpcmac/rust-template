@@ -12,6 +12,11 @@ license = "{{license-spdx}}"
 repository = "https://github.com/{{github-username}}/{{project-name}}"
 rust-version = "1.85"
 
+[profile.dev]
+opt-level = "z"
+codegen-units = 1
+lto = true
+
 [profile.release]
 panic = "abort"
 opt-level = "z"
