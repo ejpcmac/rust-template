@@ -19,7 +19,14 @@ rust-analyzer = [
 ]
 # Board support
 feather-nrf52840 = ["dep:embassy-nrf"]
-nucleo-l476rg = ["dep:embassy-stm32"]
+nucleo-l476rg = ["dep:embassy-stm32"]{% if project-type == "Embedded (Embassy)" %}
+# Platform support
+embassy = [
+    "embassy-nrf?/time",
+    "embassy-nrf?/time-driver-rtc1",
+    "embassy-stm32?/time",
+    "embassy-stm32?/time-driver-tim1",
+]{% endif %}
 
 [dependencies]
 embassy-nrf = { version = "0.3", optional = true, features = [

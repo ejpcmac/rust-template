@@ -4,6 +4,7 @@ export const PROJECT_TYPES = [
     "Minimal",
     "CLI",
     "Embedded (Bare-metal)",
+    "Embedded (Embassy)",
     "Embedded (RTIC)",
 ];
 
@@ -31,6 +32,14 @@ export const PROJECT_TYPE_INFO = #{
         kind: "embedded",
         src: #{
             src: "firmware/{{project-name}}-fw/src-bare-metal",
+            dst: "firmware/{{project-name}}-fw/src",
+        },
+        tests: (),
+    },
+    "Embedded (Embassy)": #{
+        kind: "embedded",
+        src: #{
+            src: "firmware/{{project-name}}-fw/src-embassy",
             dst: "firmware/{{project-name}}-fw/src",
         },
         tests: (),

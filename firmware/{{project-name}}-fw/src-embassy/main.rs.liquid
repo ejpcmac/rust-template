@@ -1,0 +1,44 @@
+{{license-header}}
+//! The firmware integrating the {{project-name}} app.
+
+#![no_std]
+#![no_main]
+
+use defmt_rtt as _;
+use panic_probe as _;
+
+use embassy_executor::Spawner;
+use embassy_time::Delay;
+
+use {{crate_name}}_app::{BlinkTask, {{project-name|upper_camel_case}}App};
+use {{crate_name}}_board::{Board, Config, Led};
+
+/// The name and version of the firmware.
+const FW_INFO: &str =
+    concat!(env!("CARGO_PKG_NAME"), " ", env!("VERSION_WITH_GIT"));
+
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
+    defmt::info!("Starting {}...", FW_INFO);
+
+    let board = Board::init(Config::default());
+
+    #[cfg(feature = "feather-nrf52840")]
+    let led = board.red_led;
+    #[cfg(feature = "nucleo-l476rg")]
+    let led = board.ld2;
+
+    let app = {{project-name|upper_camel_case}}App::new(led, Delay);
+
+    defmt::expect!(
+        spawner.spawn(blink(app.blink)),
+        "failed to spawn the blink task"
+    );
+
+    defmt::info!("Firmware initialised!");
+}
+
+#[embassy_executor::task]
+async fn blink(mut task: BlinkTask<Led, Delay>) {
+    task.run().await;
+}
