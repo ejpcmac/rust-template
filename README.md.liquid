@@ -31,7 +31,7 @@ setting up a `flake.nix` like this:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    {{project-name}}.url = "github:{{github-username}}/{{project-name}}";
+    {{project-name}}.url = "https://flakehub.com/f/{{github-username}}/{{project-name}}/*";
   };
 
   outputs = { flake-parts, ... }@inputs:
