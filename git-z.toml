@@ -52,6 +52,7 @@ list = [
     "t:gitignore",
     "t:gitignore@embedded",
     "t:gitsetup",
+    "t:jjsetup",
     "t:license",
     "t:memory.x",
     "t:prettierignore",
