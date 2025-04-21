@@ -54,6 +54,7 @@ list = [
     "t:gitsetup",
     "t:jjsetup",
     "t:license",
+    "t:lints",
     "t:memory.x",
     "t:prettierignore",
     "t:readme",
