@@ -4,9 +4,3 @@
 
 # direnv cache for Nix shells
 /.direnv/
-
-##
-## Editor artifacts
-##
-
-/.history/
