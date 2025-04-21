@@ -95,15 +95,14 @@
       "locked": {
         "lastModified": 1745085302,
         "narHash": "sha256-mjw2LV78yJo0ZADAZYcBt/afNsw09u9qYLejMXnx3uU=",
-        "owner": "ejpcmac",
-        "repo": "git-z",
         "rev": "d6940f2486cefb74aa8922e0ff8c5ef0387a7347",
-        "type": "github"
+        "revCount": 383,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/ejpcmac/git-z/0.2.4/01964f40-20ea-7234-b7b6-6e60eb5ab4d5/source.tar.gz"
       },
       "original": {
-        "owner": "ejpcmac",
-        "repo": "git-z",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://flakehub.com/f/ejpcmac/git-z/%2A"
       }
     },
     "naersk": {

@@ -15,7 +15,7 @@
     };
 
     git-z = {
-      url = "github:ejpcmac/git-z";
+      url = "https://flakehub.com/f/ejpcmac/git-z/*";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
