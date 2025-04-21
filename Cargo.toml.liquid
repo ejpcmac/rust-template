@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [{% if project-kind == "embedded" %}{% if project-type != "Embedded (Bare-metal)" %}"firmware/{{project-name}}-app", {% endif %}{% else %}"{{project-name}}", {% if project-type != "Minimal" %}"{{project-name}}-helpers", {% endif %}{% endif %}"xtask"]{% if project-kind != "embedded" %}
 default-members = ["{{project-name}}"{% if project-type != "Minimal" %}, "{{project-name}}-helpers"{% endif %}]{% endif %}
 
