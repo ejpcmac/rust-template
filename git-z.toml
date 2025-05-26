@@ -5,7 +5,9 @@ version = "0.2"
 # Types are shown in the dialog in the order they appear in this configuration.
 [types]
 feat = "add a new feature in the code (including tests for the feature)"
+sec = "patch a security issue (including updating a dependency for security)"
 fix = "patch a bug in the code"
+perf = "enhance the performance of the code"
 refactor = "restructure the code without changing its external behaviour"
 test = "add, update (including refactoring) or remove tests only"
 docs = "update the documentation only (including README and alike)"
