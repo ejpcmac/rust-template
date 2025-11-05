@@ -57,6 +57,7 @@ fn check(subcommand: Option<&str>) {
             build(&mut ctx);
             check_doc(&mut ctx);
             test(&mut ctx);
+            coverage(&mut ctx);
             check_unused_deps(&mut ctx);{% if project-type == "CLI" %}
             check_packages(&mut ctx);{% endif %}
         }
@@ -65,6 +66,7 @@ fn check(subcommand: Option<&str>) {
         Some("build") => build(&mut ctx),
         Some("doc") => check_doc(&mut ctx),
         Some("test") => test(&mut ctx),
+        Some("coverage") => coverage(&mut ctx),
         Some("unused-deps") => check_unused_deps(&mut ctx),{% if project-type == "CLI" %}
         Some("packages") => check_packages(&mut ctx),{% endif %}
         _ => check_usage(),
@@ -76,7 +78,7 @@ fn check(subcommand: Option<&str>) {
 fn check_usage() {
     let name = env::args().next().unwrap();
     eprintln!(
-        "usage: {name} check [commits|format|build|doc|test|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]"
+        "usage: {name} check [commits|format|build|doc|test|coverage|unused-deps{% if project-type == "CLI" %}|packages{% endif %}]"
     );
     process::exit(1);
 }{% if project-kind == "embedded" %}
@@ -133,7 +135,7 @@ fn check_commits(ctx: &mut Context) {
 
 fn check_format(ctx: &mut Context) {
     let editorconfig_excluded_files =
-        ["**.lock", "**.rs", "**.toml", "LICENSE"];
+        ["**.json", "**.lock", "**.rs", "**.toml", "LICENSE"];
 
     let exclude = format!({{'"{{{}}}"'}}, editorconfig_excluded_files.join(","));
 
@@ -251,49 +253,142 @@ fn test(ctx: &mut Context) {
     );
 }
 
-fn check_unused_deps(ctx: &mut Context) {
-    #[cfg(not(target_os = "windows"))]
-    {
-        action!(
+fn coverage(ctx: &mut Context) {
+    match NightlyCallMethod::from_env() {
+        NightlyCallMethod::Cargo => action!(
             ctx,
-            "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
-            "nix develop -L .#udeps -c cargo hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
-        );
-
-        action!(
+            step!(
+                "Cleaning any previous coverage report",
+                "cargo +nightly llvm-cov clean --workspace"
+            ),
+            step!(
+                "Running the tests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+                "cargo +nightly hack llvm-cov nextest --branch --no-report --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going --no-tests=warn",
+            ),
+            // step!(
+            //     "Running the doctests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+            //     "cargo +nightly hack llvm-cov test --branch --no-report --doc --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
+            // ),
+            step!(
+                "Generating the coverage report",
+                "cargo +nightly llvm-cov report --doctests --cobertura --output-path ./target/cobertura.xml"
+            ),
+            step!(
+                "Printing coverage results",
+                "cargo +nightly llvm-cov report --doctests"
+            ),
+        ),
+        NightlyCallMethod::Nix => action!(
             ctx,
-            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
-            "nix develop -L .#udeps -c cargo hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
-        );{% if project-kind == "embedded" %}
-
-        action!(
+            step!(
+                "Cleaning any previous coverage report",
+                "nix develop -L .#rust-nightly -c cargo llvm-cov clean --workspace"
+            ),
+            step!(
+                "Running the tests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+                "nix develop -L .#rust-nightly -c cargo hack llvm-cov nextest --branch --no-report --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going --no-tests=warn",
+            ),
+            // step!(
+            //     "Running the doctests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+            //     "nix develop -L .#rust-nightly -c cargo hack llvm-cov test --branch --no-report --doc --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
+            // ),
+            step!(
+                "Generating the coverage report",
+                "nix develop -L .#rust-nightly -c cargo llvm-cov report --doctests --cobertura --output-path ./target/cobertura.xml"
+            ),
+            step!(
+                "Printing coverage results",
+                "nix develop -L .#rust-nightly -c cargo llvm-cov report --doctests"
+            ),
+        ),
+        NightlyCallMethod::AlreadyNightly => action!(
             ctx,
-            cwd: "firmware",
-            "Looking for unused dependencies in firmware packages",
-            "nix develop -L ..#udeps -c cargo hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
-        );{% endif %}
+            step!(
+                "Cleaning any previous coverage report",
+                "cargo llvm-cov clean --workspace"
+            ),
+            step!(
+                "Running the tests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+                "cargo hack llvm-cov nextest --branch --no-report --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going --no-tests=warn",
+            ),
+            // step!(
+            //     "Running the doctests with coverage for all{% if project-kind == "embedded" %} hardware-agnostic{% endif %} packages with all feature combinations",
+            //     "cargo hack llvm-cov test --branch --no-report --doc --workspace --exclude xtask --feature-powerset --skip rust-analyzer --keep-going",
+            // ),
+            step!(
+                "Generating the coverage report",
+                "cargo llvm-cov report --doctests --cobertura --output-path ./target/cobertura.xml"
+            ),
+            step!(
+                "Printing coverage results",
+                "cargo llvm-cov report --doctests"
+            ),
+        ),
     }
+}
 
-    #[cfg(target_os = "windows")]
-    {
-        action!(
-            ctx,
-            "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
-            "cargo +nightly hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
-        );
+fn check_unused_deps(ctx: &mut Context) {
+    match NightlyCallMethod::from_env() {
+        NightlyCallMethod::Cargo => {
+            action!(
+                ctx,
+                "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "cargo +nightly hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
+            );
 
-        action!(
-            ctx,
-            "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
-            "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
-        );{% if project-kind == "embedded" %}
+            action!(
+                ctx,
+                "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "cargo +nightly hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
+            );{% if project-kind == "embedded" %}
 
-        action!(
-            ctx,
-            cwd: "firmware",
-            "Looking for unused dependencies in firmware packages",
-            "cargo +nightly hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
-        );{% endif %}
+            action!(
+                ctx,
+                cwd: "firmware",
+                "Looking for unused dependencies in firmware packages",
+                "cargo +nightly hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
+            );{% endif %}
+        }
+        NightlyCallMethod::Nix => {
+            action!(
+                ctx,
+                "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "nix develop -L .#rust-nightly -c cargo hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
+            );
+
+            action!(
+                ctx,
+                "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "nix develop -L .#rust-nightly -c cargo hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
+            );{% if project-kind == "embedded" %}
+
+            action!(
+                ctx,
+                cwd: "firmware",
+                "Looking for unused dependencies in firmware packages",
+                "nix develop -L ..#rust-nightly -c cargo hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
+            );{% endif %}
+        }
+        NightlyCallMethod::AlreadyNightly => {
+            action!(
+                ctx,
+                "Looking for unused dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "cargo hack udeps --workspace --feature-powerset --skip rust-analyzer --keep-going",
+            );
+
+            action!(
+                ctx,
+                "Looking for unused dev-dependencies{% if project-kind == "embedded" %} in hardware-agnostic packages{% endif %}",
+                "cargo hack udeps --workspace --all-targets --feature-powerset --skip rust-analyzer --keep-going",
+            );{% if project-kind == "embedded" %}
+
+            action!(
+                ctx,
+                cwd: "firmware",
+                "Looking for unused dependencies in firmware packages",
+                "cargo hack udeps --workspace --feature-powerset --at-least-one-of {BOARDS} --mutually-exclusive-features {BOARDS} --skip rust-analyzer --keep-going",
+            );{% endif %}
+        }
     }
 }
 {% if project-type == "CLI" %}
@@ -309,7 +404,7 @@ fn check_packages(ctx: &mut Context) {
     action!(
         ctx,
         "Checking that the Debian package builds properly",
-        "nix develop -L .#deb -c cargo deb --target=x86_64-unknown-linux-musl",
+        "nix develop -L .#deb -c cargo deb --package {{project-name}} --target=x86_64-unknown-linux-musl",
     );
 
     #[cfg(target_os = "windows")]
@@ -478,4 +573,28 @@ fn get_merge_base(into: &str) -> String {
         .unwrap()
         .trim()
         .to_owned()
+}
+
+enum NightlyCallMethod {
+    Cargo,
+    Nix,
+    AlreadyNightly,
+}
+
+impl NightlyCallMethod {
+    pub fn from_env() -> Self {
+        match (in_nix_shell(), has_rust_nightly()) {
+            (false, _) => Self::Cargo,
+            (true, false) => Self::Nix,
+            (true, true) => Self::AlreadyNightly,
+        }
+    }
+}
+
+fn in_nix_shell() -> bool {
+    env::var_os("IN_NIX_SHELL").is_some()
+}
+
+fn has_rust_nightly() -> bool {
+    env::var_os("HAS_RUST_NIGHTLY").is_some_and(|val| val == "true")
 }

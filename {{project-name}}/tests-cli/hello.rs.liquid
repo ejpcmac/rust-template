@@ -8,7 +8,7 @@
 
 use std::process::Command;
 
-use assert_cmd::cargo::cargo_bin;
+use assert_cmd::cargo_bin;
 use eyre::Result;
 use rexpect::session::spawn_command;
 
@@ -19,8 +19,12 @@ const TIMEOUT: Option<u64> = Some(1_000);
 ////////////////////////////////////////////////////////////////////////////////
 
 fn {{crate_name}}_hello() -> Result<Command> {
-    let mut cmd = Command::new(cargo_bin("{{project-name}}"));
-    cmd.env("NO_COLOR", "true").arg("hello");
+    let mut cmd = Command::new(cargo_bin!("{{project-name}}"));
+    cmd.env("NO_COLOR", "true")
+        // NOTE: Enable tracing to avoid missing coverage noise.
+        .arg("-vvvv")
+        .arg("hello");
+
     Ok(cmd)
 }
 

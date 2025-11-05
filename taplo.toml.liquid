@@ -2,10 +2,11 @@ include = [
     "*.toml",
     ".config/*.toml",{% if project-kind == "embedded" %}
     "firmware/**/*.toml",{% else %}
-    "{{project-name}}/**/*.toml",{% endif %}
+    "{{project-name}}/**/*.toml",
+    "{{project-name}}-helpers/**/*.toml",{% endif %}
     "xtask/**/*.toml",
 ]
-exclude = ["**/.cargo/config.toml"]
+exclude = ["**/.cargo/config.toml", "bacon.toml"]
 
 [formatting]
 indent_string = "    "

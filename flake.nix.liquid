@@ -27,6 +27,8 @@
     git-z = {
       url = "https://flakehub.com/f/ejpcmac/git-z/*";
       inputs.nixpkgs.follows = "nixpkgs";
+      # NOTE: Use the latest rust-overlay, compatible with the latest nixpkgs.
+      inputs.rust-overlay.follows = "rust-overlay";
     };
   };
 
@@ -40,7 +42,11 @@
           overlays = [ (import inputs.rust-overlay) ];
           pkgs = import inputs.nixpkgs { inherit system overlays; };
           rust-toolchain =
-            pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+            pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;{% if project-type == "CLI" %}
+
+          dependencies = [
+            # System dependencies go here.
+          ];{% endif %}
         in
         {{"{"}}{% if project-type == "CLI" %}
           ######################################################################
@@ -63,10 +69,13 @@
                 name = packageName;
                 version = "0.1.0-dev.0";
                 src = ./.;
+
                 RUSTFLAGS = "-A missing_docs";
                 FLAKE_REVISION = self.shortRev or
                   (builtins.replaceStrings [ "dirty" ] [ "modified" ]
                     self.dirtyShortRev);
+
+                buildInputs = dependencies;
               };
             };
 {% endif %}
@@ -76,11 +85,29 @@
 
           devshells =
             let
-              git-z = inputs'.git-z.packages.git-z;
+              git-z = inputs'.git-z.packages.git-z;{% if project-type == "CLI" %}
 
-              buildToolchain = with pkgs; [{% if project-type == "CLI" %}
-                pkg-config{% endif %}
-                rust-toolchain{% if project-kind == "embedded" %}
+              language = {
+                c = {
+                  includes = dependencies;
+                  libraries = dependencies;
+                };
+
+                rust.enableDefaultToolchain = false;
+              };{% endif %}
+
+              rustToolchain = version:
+                if version == "stable" then
+                  rust-toolchain
+                else if version == "nightly" then
+                  (pkgs.rust-bin.nightly."2025-11-01".minimal.override {
+                    extensions = [ "llvm-tools" ];{% if project-kind == "embedded" %}
+                    targets = [ "thumbv7em-none-eabihf" ];{% endif %}
+                  })
+                else throw "the Rust version must be `stable` or `nightly`";
+
+              buildToolchain = version: with pkgs; [
+                (rustToolchain version){% if project-kind == "embedded" %}
                 flip-link{% endif %}
               ] ++ lib.optionals (!stdenv.isDarwin) [
                 clang
@@ -97,32 +124,29 @@
                 typos
               ];
 
+              nightlyCheckToolchain = with pkgs; [
+                cargo-udeps
+              ] ++ lib.optionals (!stdenv.isDarwin) [
+                cargo-llvm-cov
+              ];
+
               ideToolchain = with pkgs; [
                 nixd
                 rust-analyzer
               ];
 
-              developmentTools = with pkgs; [
+              devTools = with pkgs; [
+                bacon
                 cargo-bloat
                 cargo-outdated
-                cargo-watch
                 git
                 git-z
-                gitAndTools.gitflow{% if project-kind == "embedded" %}
+                gitflow{% if project-kind == "embedded" %}
                 cargo-binutils
                 gcc-arm-embedded
                 openocd
-                probe-rs{% endif %}
-              ];{% if project-type == "CLI" %}
-
-              # NOTE: pkg-config needs this variable to detect libraries
-              # installed in the devshell.
-              buildEnv = [
-                {
-                  name = "PKG_CONFIG_PATH";
-                  prefix = "$DEVSHELL_DIR/lib/pkgconfig";
-                }
-              ];{% endif %}{% if project-kind != "embedded" %}
+                probe-rs-tools{% endif %}
+              ];{% if project-kind != "embedded" %}
 
               devEnv = [
                 {
@@ -141,9 +165,21 @@
                   value = "${pkgs.typos-lsp}/bin/typos-lsp";
                 }
               ];
+
+              nightlyEnv = [
+                {
+                  name = "HAS_RUST_NIGHTLY";
+                  value = "true";
+                }
+              ];
             in
             {
-              default = {
+              default = {% if project-type == "CLI" %}{ extraModulesPath, ... }: {% endif %}{{"{"}}{% if project-type == "CLI" %}
+                imports = [
+                  "${extraModulesPath}/language/c.nix"
+                  "${extraModulesPath}/language/rust.nix"
+                ];
+{% endif %}
                 name = "{{project-name}}";
 
                 motd = ''
@@ -151,18 +187,16 @@
                   {202}🔨 Welcome to the {{project-name}} devshell!{reset}
                 '';{% if project-type == "CLI" %}
 
-                # TODO: Uncomment to include the runtime dependencies.
-                # packagesFrom = [ self'.packages.default ];{% endif %}
+                inherit language;{% endif %}
 
                 packages =
-                  buildToolchain
+                  buildToolchain "stable"
                   ++ checkToolchain
                   ++ ideToolchain
-                  ++ developmentTools;
+                  ++ devTools;
 
                 env =
-                  {% if project-type == "CLI" %}buildEnv
-                  ++ {% endif %}{% if project-kind != "embedded" %}devEnv
+                  {% if project-kind != "embedded" %}devEnv
                   ++ {% endif %}ideEnv;
 
                 commands = [{% if project-type == "CLI" %}
@@ -171,31 +205,34 @@
                     command = "cargo deb --target=x86_64-unknown-linux-musl";
                   }
 {% endif %}
-                  # Pass-through commands to make some cargo extensions run in
-                  # their own devshell.{% if project-type == "CLI" %}
+                  # Pass-through commands to make some cargo extensions run with
+                  # a different toolchain.{% if project-type == "CLI" %}
                   {
                     name = "cargo-deb";
                     command = "nix develop -L .#deb -c cargo $@";
                   }{% endif %}
                   {
+                    name = "cargo-llvm-cov";
+                    command = "nix develop -L .#rust-nightly -c cargo $@";
+                  }
+                  {
                     name = "cargo-udeps";
-                    command = "nix develop -L .#udeps -c cargo $@";
+                    command = "nix develop -L .#rust-nightly -c cargo $@";
+                  }
+                  {
+                    name = "coverage-report";
+                    command = ''
+                      nix develop -L .#rust-nightly -c \
+                        cargo llvm-cov nextest --branch --open
+                    '';
+                  }
+                  {
+                    name = "live-coverage";
+                    command = ''
+                      nix develop -L .#rust-nightly -c bacon coverage
+                    '';
                   }
                 ];
-              };
-
-              ci = {
-                name = "{{project-name}} CI";{% if project-type == "CLI" %}
-
-                # TODO: Uncomment to include the runtime dependencies.
-                # packagesFrom = [ self'.packages.default ];{% endif %}
-
-                packages =
-                  buildToolchain
-                  ++ checkToolchain;{% if project-type == "CLI" %}
-
-                env =
-                  buildEnv;{% endif %}
               };{% if project-type == "CLI" %}
 
               # NOTE: Use the musl target to build a statically-linked binary.
@@ -219,18 +256,50 @@
                 ];
               };{% endif %}
 
-              # NOTE: cargo-udeps needs Rust nightly to run.
-              udeps = {
-                name = "cargo-udeps";
-                packages = with pkgs; [{% if project-kind == "embedded" %}
-                  (rust-bin.nightly."2025-07-01".minimal.override {
-                    targets = [ "thumbv7em-none-eabihf" ];
-                  }){% else %}
-                  rust-bin.nightly."2025-07-01".minimal{% endif %}
-                  clang
-                  cargo-hack
-                  cargo-udeps
+              # Devshell to run tools with a nightly toolchain.
+              rust-nightly = {
+                name = "Rust Nightly";
+
+                packages =
+                  buildToolchain "nightly"
+                  ++ nightlyCheckToolchain;
+
+                env =
+                  nightlyEnv;
+              };
+
+              ci = {% if project-type == "CLI" %}{ extraModulesPath, ... }: {% endif %}{{"{"}}{% if project-type == "CLI" %}
+                imports = [
+                  "${extraModulesPath}/language/c.nix"
+                  "${extraModulesPath}/language/rust.nix"
                 ];
+{% endif %}
+                name = "{{project-name}} CI";{% if project-type == "CLI" %}
+
+                inherit language;{% endif %}
+
+                packages =
+                  buildToolchain "stable"
+                  ++ checkToolchain;
+              };
+
+              ci-nightly = {% if project-type == "CLI" %}{ extraModulesPath, ... }: {% endif %}{{"{"}}{% if project-type == "CLI" %}
+                imports = [
+                  "${extraModulesPath}/language/c.nix"
+                  "${extraModulesPath}/language/rust.nix"
+                ];
+{% endif %}
+                name = "{{project-name}} CI (Rust Nightly)";{% if project-type == "CLI" %}
+
+                inherit language;{% endif %}
+
+                packages =
+                  buildToolchain "nightly"
+                  ++ checkToolchain
+                  ++ nightlyCheckToolchain;
+
+                env =
+                  nightlyEnv;
               };
             };
         };
