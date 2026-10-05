@@ -251,7 +251,8 @@
                 env = [
                   {
                     name = "TARGET_CC";
-                    value = "${pkgs.pkgsCross.musl64.clang}/bin/clang";
+                    value = with pkgs.pkgsCross.musl64.buildPackages;
+                      "${clang}/bin/${clang.targetPrefix}clang";
                   }
                 ];
               };{% endif %}
