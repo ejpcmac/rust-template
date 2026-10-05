@@ -10,13 +10,39 @@ let author = variable::get("authors");
 let author_name = author.split(" <")[0];
 
 ////////////////////////////////////////////////////////////////////////////////
+//                                  Helpers                                   //
+////////////////////////////////////////////////////////////////////////////////
+
+// Gets the value defined on the command line, or prompts for it.
+fn answer(name, prompt) {
+    if variable::is_set(name) {
+        variable::get(name)
+    } else {
+        variable::prompt(prompt)
+    }
+}
+
+// Same as `answer`, for a value that must be one of `choices`.
+fn choice(name, prompt, default_value, choices) {
+    if variable::is_set(name) {
+        let value = variable::get(name);
+        if !choices.contains(value) {
+            throw `Invalid value for ${name}: "${value}". Expected one of: ${choices}`;
+        }
+        value
+    } else {
+        variable::prompt(prompt, default_value, choices)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 //                               General params                               //
 ////////////////////////////////////////////////////////////////////////////////
 
-let description = variable::prompt("Short description of the project");
-let project_type = variable::prompt("Project type", "", options::PROJECT_TYPES);
-let license = variable::prompt("What license to use?", "GPL-3.0", options::LICENSES);
-let github_username = variable::prompt("GitHub username or organisation where the project is hosted");
+let description = answer("description", "Short description of the project");
+let project_type = choice("project-type", "Project type", "", options::PROJECT_TYPES);
+let license = choice("license", "What license to use?", "GPL-3.0", options::LICENSES);
+let github_username = answer("github-username", "GitHub username or organisation where the project is hosted");
 
 let project = options::PROJECT_TYPE_INFO[project_type];
 
