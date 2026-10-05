@@ -3,3 +3,4 @@ ignore = [".direnv", ".history", "flake.lock", "scripts"]
 
 [hooks]
 pre = ["scripts/main.rhai"]
+post = ["scripts-post/format.rhai"]
