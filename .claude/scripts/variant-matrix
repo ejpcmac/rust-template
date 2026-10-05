@@ -1,0 +1,191 @@
+#!/bin/sh
+
+# Renders the template for each project type and optionally runs the checks of
+# the generated projects.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: variant-matrix [options] <output directory>
+
+Renders each project type into <output directory>/<variant>-<licence>, where
+<variant> is the short name of the project type (minimal, cli, bare-metal,
+embassy, rtic). The output directory must be empty or not exist.
+
+With -c, also runs \`cargo xtask check\` in the CI devshell of each render, and
+writes the output to <output directory>/<variant>-<licence>.log. The renders
+are then formatted, as with -f, and get a Git repository and a Cargo.lock:
+compare renders made without -c. The build artifacts are deleted after the
+checks, unless -k is given.
+
+options:
+  -r <revision>  template revision, as a jj revset (default: @)
+  -t <variant>   project type to render, by name or short name; can be
+                 repeated (default: all the project types of the revision)
+  -l <licence>   licence to render, or \`all\`; can be repeated
+                 (default: GPL-3.0)
+  -f             format the renders, as the generation does when it is allowed
+                 to run commands; this builds the devshell of each render
+  -c <check>     check to run, as taken by \`cargo xtask check\`, or \`all\`;
+                 can be repeated
+  -k             keep the build artifacts of the checks
+EOF
+    exit 2
+}
+
+die() {
+    echo "variant-matrix: $1" >&2
+    exit 1
+}
+
+# Prints the items of a list defined in scripts/options.rhai, one per line.
+options_list() {
+    echo "$options" |
+        sed -n "/^export const $1 = \[/,/^\];/p" |
+        sed -n 's/^ *"\(.*\)",$/\1/p'
+}
+
+short_name() {
+    echo "$1" | sed 's/^Embedded (\(.*\))$/\1/' | tr 'A-Z ' 'a-z-'
+}
+
+# Tells whether a line-separated list contains an item.
+contains() {
+    echo "$1" | grep -qxF -- "$2"
+}
+
+commit() {
+    git -c user.name=variant-matrix \
+        -c user.email=variant-matrix@localhost \
+        -c commit.gpgsign=false \
+        commit -q -m "$1"
+}
+
+run_checks() {
+    # NOTE: `set -e` has no effect here, as the function is called in an `if`.
+    (
+        cd "$1" || exit 1
+
+        # The checks need a Git repository on the main branch, with the lock
+        # files committed.
+        git init -q -b main &&
+            git add -A &&
+            commit "chore: render the template" &&
+            nix develop .#ci -c cargo generate-lockfile </dev/null &&
+            git add -A &&
+            commit "chore: add the lock file" ||
+            exit 1
+
+        status=0
+        while IFS= read -r check; do
+            if [ "$check" = "all" ]; then
+                nix develop .#ci -c cargo xtask check </dev/null || status=1
+            else
+                nix develop .#ci -c cargo xtask check "$check" </dev/null ||
+                    status=1
+            fi
+        done <<EOF
+$checks
+EOF
+        exit "$status"
+    ) >"$1.log" 2>&1
+}
+
+revision="@"
+variants=""
+licences=""
+checks=""
+format=""
+keep_artifacts=false
+
+while getopts "r:t:l:fc:k" option; do
+    case "$option" in
+        r) revision="$OPTARG" ;;
+        t) variants="${variants:+$variants
+}$OPTARG" ;;
+        l) licences="${licences:+$licences
+}$OPTARG" ;;
+        f) format="-f" ;;
+        c)
+            format="-f"
+            checks="${checks:+$checks
+}$OPTARG"
+            ;;
+        k) keep_artifacts=true ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+[ $# -eq 1 ] || usage
+
+scripts=$(cd "$(dirname "$0")" && pwd)
+root=$(cd "$scripts/../.." && pwd)
+
+# The project types and licences are those of the rendered revision.
+options=$(cd "$root" && jj file show -r "$revision" scripts/options.rhai) ||
+    die "cannot read scripts/options.rhai at \`$revision\`"
+project_types=$(options_list PROJECT_TYPES)
+known_licences=$(options_list LICENSES)
+[ -n "$project_types" ] && [ -n "$known_licences" ] ||
+    die "cannot read the project types and licences at \`$revision\`"
+
+if [ -z "$licences" ]; then
+    licences="GPL-3.0"
+elif contains "$licences" all; then
+    licences="$known_licences"
+fi
+
+if [ -n "$variants" ]; then
+    selected=""
+    while IFS= read -r project_type; do
+        if contains "$variants" "$project_type" ||
+            contains "$variants" "$(short_name "$project_type")"; then
+            selected="${selected:+$selected
+}$project_type"
+        fi
+    done <<EOF
+$project_types
+EOF
+    [ "$(echo "$selected" | wc -l)" -eq "$(echo "$variants" | wc -l)" ] ||
+        die "unknown project type in: $(echo "$variants" | tr '\n' ' ')"
+    project_types="$selected"
+fi
+
+mkdir -p "$1"
+output=$(cd "$1" && pwd)
+[ -z "$(ls -A "$output")" ] || die "$output is not empty"
+
+failures=0
+
+while IFS= read -r project_type; do
+    while IFS= read -r licence; do
+        render="$output/$(short_name "$project_type")-$licence"
+        "$scripts/render" -r "$revision" -t "$project_type" -l "$licence" \
+            $format "$render"
+
+        if [ -z "$checks" ]; then
+            echo "rendered  $render"
+            continue
+        fi
+
+        start=$(date +%s)
+        if run_checks "$render"; then
+            result="passed  "
+        else
+            result="FAILED  "
+            failures=$((failures + 1))
+        fi
+        if [ "$keep_artifacts" = false ]; then
+            find "$render" -type d -name target -prune -exec rm -rf {} +
+        fi
+        echo "$result  $render  ($(($(date +%s) - start)) s, see $render.log)"
+    done <<EOF
+$licences
+EOF
+done <<EOF
+$project_types
+EOF
+
+[ "$failures" -eq 0 ] || die "the checks have failed for $failures render(s)"

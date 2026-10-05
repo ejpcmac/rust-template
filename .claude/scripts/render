@@ -1,0 +1,113 @@
+#!/bin/sh
+
+# Renders the template into a directory, without any prompt.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: render [options] -t <project type> <destination>
+
+Renders the template at a given revision, with a given set of answers.
+The destination must be empty or not exist.
+
+options:
+  -r <revision>     template revision, as a jj revset (default: @)
+  -t <project type> project type, as listed in scripts/options.rhai
+  -l <licence>      licence (default: GPL-3.0)
+  -n <name>         project name (default: example)
+  -d <description>  description (default: An example project)
+  -u <username>     GitHub username (default: example)
+  -a <authors>      authors, as "Name <email>" (default: from the environment)
+  -f                format the render, as the generation does when it is allowed
+                    to run commands; this builds the devshell of the render
+EOF
+    exit 2
+}
+
+die() {
+    echo "render: $1" >&2
+    exit 1
+}
+
+revision="@"
+project_type=""
+licence="GPL-3.0"
+name="example"
+description="An example project"
+github_username="example"
+authors=""
+allow_commands=""
+
+while getopts "r:t:l:n:d:u:a:f" option; do
+    case "$option" in
+        r) revision="$OPTARG" ;;
+        t) project_type="$OPTARG" ;;
+        l) licence="$OPTARG" ;;
+        n) name="$OPTARG" ;;
+        d) description="$OPTARG" ;;
+        u) github_username="$OPTARG" ;;
+        a) authors="$OPTARG" ;;
+        f) allow_commands="--allow-commands" ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+[ $# -eq 1 ] || usage
+[ -n "$project_type" ] || usage
+
+if [ -n "$authors" ]; then
+    case "$authors" in
+        *" <"*">") ;;
+        *) die "the authors must be given as \"Name <email>\"" ;;
+    esac
+
+    # cargo-generate ignores a defined `authors`, but reads these.
+    CARGO_NAME="${authors%% <*}"
+    CARGO_EMAIL="${authors##*<}"
+    CARGO_EMAIL="${CARGO_EMAIL%>}"
+    export CARGO_NAME CARGO_EMAIL
+fi
+
+root=$(cd "$(dirname "$0")/../.." && pwd)
+
+commit=$(cd "$root" && jj log --no-graph -r "$revision" -T 'commit_id ++ "\n"') ||
+    die "cannot resolve the revision \`$revision\`"
+[ "$(echo "$commit" | wc -l)" -eq 1 ] && [ -n "$commit" ] ||
+    die "the revision \`$revision\` must resolve to exactly one commit"
+
+mkdir -p "$1"
+destination=$(cd "$1" && pwd)
+[ -z "$(ls -A "$destination")" ] || die "$destination is not empty"
+
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+# Export the revision instead of using the working copy, so that only tracked
+# files are rendered. jj has no archive command.
+mkdir "$scratch/template"
+git -C "$root" archive --format=tar "$commit" | tar -x -C "$scratch/template"
+
+if ! (
+    cd "$destination" &&
+        cargo-generate generate \
+            --path "$scratch/template" \
+            --init \
+            $allow_commands \
+            --name "$name" \
+            --define "description=$description" \
+            --define "project-type=$project_type" \
+            --define "license=$licence" \
+            --define "github-username=$github_username" \
+            </dev/null >"$scratch/log" 2>&1
+); then
+    cat "$scratch/log" >&2
+    die "cannot render \`$project_type\` at $commit"
+fi
+
+# The formatting hook reports its failure without failing the generation.
+if [ -n "$allow_commands" ] && grep -q "has not been formatted" "$scratch/log"; then
+    cat "$scratch/log" >&2
+    die "cannot format \`$project_type\` at $commit"
+fi

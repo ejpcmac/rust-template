@@ -79,6 +79,7 @@ list = [
 
     # Tools
     "cargo-generate",
+    "claude",
     "devshell",
     "direnv",
     "editorconfig",
