@@ -29,8 +29,8 @@ cortex-m = { version = "0.7", features = [
 cortex-m-rt = "0.7"
 defmt = "0.3"
 defmt-rtt = "0.4"
-panic-probe = { version = "0.3", features = ["print-defmt"] }{% if project-type != "Embedded (Bare-metal)" %}
-{{project-name}}-app = { path = "../{{project-name}}-app", features = ["embedded-hal"] }{% endif %}
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+{{project-name}}-app = { path = "../{{project-name}}-app"{% if project-type != "Embedded (Bare-metal)" %}, features = ["embedded-hal"]{% endif %} }
 {{project-name}}-board = { path = "../{{project-name}}-board"{% if project-type == "Embedded (Embassy)" %}, features = ["embassy"]{% endif %} }{% if project-type == "Embedded (Embassy)" %}
 embassy-executor = { version = "0.7.0", features = [
     "arch-cortex-m",

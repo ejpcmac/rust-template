@@ -101,8 +101,13 @@ if project.kind == "embedded" {
     file::delete(".github/workflows/release.yml");
 
     file::rename("build.rs", "firmware/{{project-name}}-fw/build.rs");
+
+    let app = "firmware/{{project-name}}-app";
     if project_type == "Embedded (Bare-metal)" {
-        file::delete("firmware/{{project-name}}-app");
+        file::delete(`${app}/src`);
+        file::rename(`${app}/src-bare-metal`, `${app}/src`);
+    } else {
+        file::delete(`${app}/src-bare-metal`);
     }
 } else {
     file::delete("firmware");

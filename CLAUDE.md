@@ -33,8 +33,9 @@ code organisation and practices of the author's projects.
   between the two hooks, so a `post` script lives outside `scripts` and deletes
   its own directory.
 - An `Embedded` render has two workspaces: the root one (`xtask`, and the
-  hardware-agnostic `-app` crate except for `Embedded (Bare-metal)`) and
-  `firmware/`, with its own `Cargo.toml`, lock file and `target`.
+  hardware-agnostic `-app` crate) and `firmware/`, with its own `Cargo.toml`,
+  lock file and `target`. The `-app` crate of `Embedded (Bare-metal)` has its
+  own sources, `src-bare-metal`.
 
 ## Template output
 

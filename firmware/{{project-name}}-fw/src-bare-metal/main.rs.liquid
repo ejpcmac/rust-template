@@ -9,6 +9,7 @@ use panic_probe as _;
 
 use cortex_m_rt::entry;
 
+use {{crate_name}}_app::greeting;
 use {{crate_name}}_board as _;
 
 #[entry]
@@ -21,7 +22,7 @@ use {{crate_name}}_board as _;
     reason = "the warning comes from the cortex_m::entry macro"
 )]
 fn main() -> ! {
-    defmt::println!("Hello, world!");
+    defmt::println!("{}", greeting());
 
     loop {
         cortex_m::asm::wfi();

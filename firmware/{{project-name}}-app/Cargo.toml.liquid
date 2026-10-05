@@ -13,7 +13,7 @@ description = "{{description}}"
 # NOTE: This feature is enabled in `.vscode/settings.json` and can be used to
 # enable some features when editing the code without impacting the default
 # features.
-rust-analyzer = ["embedded-hal"]
+rust-analyzer = [{% if project-type != "Embedded (Bare-metal)" %}"embedded-hal"{% endif %}]{% if project-type != "Embedded (Bare-metal)" %}
 # Platform support
 embedded-hal = ["dep:embedded-hal", "dep:embedded-hal-async"]
 
@@ -24,7 +24,7 @@ embedded-hal-async = { version = "1", optional = true, features = ["defmt-03"] }
 
 [dev-dependencies]
 mockall = "0.13"
-pollster = { version = "0.4", features = ["macro"] }
+pollster = { version = "0.4", features = ["macro"] }{% endif %}
 
 [lints]
 workspace = true
