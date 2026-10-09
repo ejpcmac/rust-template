@@ -1,5 +1,12 @@
 [template]
-ignore = [".claude", ".direnv", ".history", "flake.lock", "scripts"]
+ignore = [
+    ".claude",
+    ".direnv",
+    ".history",
+    "CLAUDE.md",
+    "flake.lock",
+    "scripts",
+]
 
 [hooks]
 pre = ["scripts/main.rhai"]
