@@ -1,9 +1,9 @@
 // License headers for source files.
 
-fn agpl(project_name, description, author) {
+fn agpl(project_name, description, year, author) {
 `
 // ${project_name} - ${description}
-// Copyright (C) 2025 ${author}
+// Copyright (C) ${year} ${author}
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -19,10 +19,10 @@ fn agpl(project_name, description, author) {
 `
 }
 
-fn gpl(project_name, description, author) {
+fn gpl(project_name, description, year, author) {
 `
 // ${project_name} - ${description}
-// Copyright (C) 2025 ${author}
+// Copyright (C) ${year} ${author}
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,9 +46,9 @@ fn mpl() {
 `
 }
 
-fn apache(author_name) {
+fn apache(year, author_name) {
 `
-// Copyright 2025 ${author_name}
+// Copyright ${year} ${author_name}
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

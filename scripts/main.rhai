@@ -9,6 +9,9 @@ let author = variable::get("authors");
 // Set an author-name variable without email.
 let author_name = author.split(" <")[0];
 
+// Get the current year, for the copyright notices.
+let year = system::date().year.to_string();
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                  Helpers                                   //
 ////////////////////////////////////////////////////////////////////////////////
@@ -53,14 +56,15 @@ let license_spdx = if license == "AGPL-3.0" || license == "GPL-3.0" {
 };
 
 let license_header = switch license {
-    "AGPL-3.0" => license_header::agpl(project_name, description, author),
-    "GPL-3.0" => license_header::gpl(project_name, description, author),
+    "AGPL-3.0" => license_header::agpl(project_name, description, year, author),
+    "GPL-3.0" => license_header::gpl(project_name, description, year, author),
     "MPL-2.0" => license_header::mpl(),
-    "Apache-2.0" => license_header::apache(author_name),
+    "Apache-2.0" => license_header::apache(year, author_name),
     _ => "",
 };
 
 variable::set("author-name", author_name);
+variable::set("year", year);
 variable::set("description", description);
 variable::set("project-type", project_type);
 variable::set("project-kind", project.kind);
