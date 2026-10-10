@@ -135,20 +135,16 @@ fn maybe_revision_from_git(cargo_version: &str) -> io::Result<Option<String>> {
 }
 
 /// Returns the result of `git describe --tags --always --dirty=-modified`.
-#[expect(
-    clippy::missing_panics_doc,
-    reason = "the unwrap in the function cannot actually panic on modern systems"
-)]
 fn git_describe() -> io::Result<Option<String>> {
     let output = Command::new("git")
         .args(["describe", "--tags", "--always", "--dirty=-modified"])
         .output()?;
 
-    #[expect(clippy::unwrap_used, reason = "non-UTF-8 outputs are obsolete")]
-    Ok(output
-        .status
-        .success()
-        .then(|| String::from_utf8(output.stdout).unwrap().trim().to_owned()))
+    Ok(output.status.success().then(|| {
+        String::from_utf8_lossy_owned(output.stdout)
+            .trim()
+            .to_owned()
+    }))
 }
 
 /// Returns the current Git revision and its dirtiness.
@@ -165,20 +161,16 @@ fn git_revision_and_state() -> io::Result<Option<String>> {
 }
 
 /// Returns the current Git revision.
-#[expect(
-    clippy::missing_panics_doc,
-    reason = "the unwrap in the function cannot actually panic on modern systems"
-)]
 fn git_revision() -> io::Result<Option<String>> {
     let output = Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
         .output()?;
 
-    #[expect(clippy::unwrap_used, reason = "non-UTF-8 outputs are obsolete")]
-    Ok(output
-        .status
-        .success()
-        .then(|| String::from_utf8(output.stdout).unwrap().trim().to_owned()))
+    Ok(output.status.success().then(|| {
+        String::from_utf8_lossy_owned(output.stdout)
+            .trim()
+            .to_owned()
+    }))
 }
 
 /// Returns whether the current Git worktree is dirty.
