@@ -41,7 +41,7 @@ embassy-time = { version = "0.5", features = [
     "defmt",
     "defmt-timestamp-uptime",
 ] }{% elsif project-type == "Embedded (RTIC)" %}
-rtic = { version = "2", features = ["cortex-m", "thumbv7-backend"] }
+rtic = { version = "2", features = ["thumbv7-backend"] }
 rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }{% endif %}
 
 # For `cargo fix` to work.
