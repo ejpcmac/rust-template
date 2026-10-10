@@ -18,7 +18,7 @@ rust-analyzer = [{% if project-type != "Embedded (Bare-metal)" %}"embedded-hal"{
 embedded-hal = ["dep:embedded-hal", "dep:embedded-hal-async"]
 
 [dependencies]
-defmt = "0.3"
+defmt = "1"
 embedded-hal = { version = "1", optional = true, features = ["defmt-03"] }
 embedded-hal-async = { version = "1", optional = true, features = ["defmt-03"] }
 
