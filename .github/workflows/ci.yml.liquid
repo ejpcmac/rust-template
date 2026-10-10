@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install Nix
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Setup the Nix cache
@@ -77,7 +77,7 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf false
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         if: matrix.system != 'x86_64-windows'
         uses: DeterminateSystems/nix-installer-action@main
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Setup the Nix cache
@@ -132,7 +132,7 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf false
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         if: matrix.system != 'x86_64-windows'
         uses: DeterminateSystems/nix-installer-action@main
@@ -162,7 +162,7 @@ jobs:
       id-token: write
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Setup the Nix cache
@@ -172,7 +172,7 @@ jobs:
       - name: Generate the test coverage report
         run: nix develop .#ci-nightly -c cargo xtask check coverage
       - name: Upload the test coverage report
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           disable_search: true
           files: ./target/cobertura.xml
@@ -196,7 +196,7 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf false
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         if: matrix.system != 'x86_64-windows'
         uses: DeterminateSystems/nix-installer-action@main
@@ -238,7 +238,7 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf false
       - name: Clone the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Nix
         if: matrix.system != 'x86_64-windows'
         uses: DeterminateSystems/nix-installer-action@main
