@@ -80,6 +80,7 @@ list = [
     # Repository scripts
     "x:follow",
     "x:follow-pane",
+    "x:render",
     "x:variant-matrix",
 
     # Skills

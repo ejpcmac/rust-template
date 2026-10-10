@@ -20,7 +20,7 @@ options:
   -t <project type> project type, as listed in scripts/options.rhai
   -l <licence>      licence (default: GPL-3.0)
   -n <name>         project name (default: example)
-  -d <description>  description (default: An example project)
+  -d <description>  description (default: An example project.)
   -u <username>     GitHub username (default: example)
   -a <authors>      authors, as "Name <email>" (default: from the environment)
   -f                format the render, as the generation does when it is allowed
@@ -38,7 +38,7 @@ revision="@"
 project_type=""
 licence="GPL-3.0"
 name="example"
-description="An example project"
+description="An example project."
 github_username="example"
 authors=""
 allow_commands=""
