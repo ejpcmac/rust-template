@@ -36,12 +36,11 @@ fn main() {{"{"}}{% if project-kind == "embedded" %}
     reason = "any of the following errors is a hard error"
 )]
 fn copy_linker_script() {
-    #[cfg(not(any(feature = "feather-nrf52840", feature = "nucleo-l476rg")))]
-    let memory = &[];
-    #[cfg(feature = "feather-nrf52840")]
-    let memory = include_bytes!("memory/nrf52840.x");
-    #[cfg(feature = "nucleo-l476rg")]
-    let memory = include_bytes!("memory/stm32l476rg.x");
+    let memory = cfg_select! {
+        feature = "feather-nrf52840" => include_bytes!("memory/nrf52840.x"),
+        feature = "nucleo-l476rg" => include_bytes!("memory/stm32l476rg.x"),
+        _ => &[],
+    };
 
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     File::create(out.join("memory.x"))
