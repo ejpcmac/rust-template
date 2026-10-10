@@ -23,10 +23,10 @@ async fn main(spawner: Spawner) {
 
     let board = Board::init(Config::default());
 
-    #[cfg(feature = "feather-nrf52840")]
-    let led = board.red_led;
-    #[cfg(feature = "nucleo-l476rg")]
-    let led = board.ld2;
+    let led = cfg_select! {
+        feature = "feather-nrf52840" => board.red_led,
+        feature = "nucleo-l476rg" => board.ld2,
+    };
 
     let app = {{project-name|upper_camel_case}}App::new(led, Delay);
 

@@ -3,21 +3,22 @@
 
 #![no_std]
 
-#[cfg(not(any(feature = "feather-nrf52840", feature = "nucleo-l476rg")))]
-compile_error!(
-    "No board feature is enabled. Exactly one of the following features must be enabled:
+cfg_select! {
+    feature = "feather-nrf52840" => {
+        mod feather_nrf52840;
+        pub use feather_nrf52840::*;
+    }
+    feature = "nucleo-l476rg" => {
+        mod nucleo_l476rg;
+        pub use nucleo_l476rg::*;
+    }
+    _ => {
+        compile_error!(
+            "No board feature is enabled. Exactly one of the following features must be enabled:
 
     - feather-nrf52840
     - nucleo-l476rg
     "
-);
-
-#[cfg(feature = "feather-nrf52840")]
-mod feather_nrf52840;
-#[cfg(feature = "nucleo-l476rg")]
-mod nucleo_l476rg;
-
-#[cfg(feature = "feather-nrf52840")]
-pub use feather_nrf52840::*;
-#[cfg(feature = "nucleo-l476rg")]
-pub use nucleo_l476rg::*;
+        );
+    }
+}

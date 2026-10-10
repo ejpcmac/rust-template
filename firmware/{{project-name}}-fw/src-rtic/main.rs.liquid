@@ -31,15 +31,17 @@ mod app {
 
         let board = Board::init(Config::default());
 
-        #[cfg(feature = "feather-nrf52840")]
-        let led = board.red_led;
-        #[cfg(feature = "nucleo-l476rg")]
-        let led = board.ld2;
+        let led = cfg_select! {
+            feature = "feather-nrf52840" => board.red_led,
+            feature = "nucleo-l476rg" => board.ld2,
+        };
 
-        #[cfg(feature = "feather-nrf52840")]
-        Mono::start(cx.core.SYST, 64_000_000);
-        #[cfg(feature = "nucleo-l476rg")]
-        Mono::start(cx.core.SYST, 4_000_000);
+        let sysclk = cfg_select! {
+            feature = "feather-nrf52840" => 64_000_000,
+            feature = "nucleo-l476rg" => 4_000_000,
+        };
+
+        Mono::start(cx.core.SYST, sysclk);
 
         let app = {{project-name|upper_camel_case}}App::new(led, Mono);
 
