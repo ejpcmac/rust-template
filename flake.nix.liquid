@@ -100,7 +100,7 @@
                 if version == "stable" then
                   rust-toolchain
                 else if version == "nightly" then
-                  (pkgs.rust-bin.nightly."2025-11-01".minimal.override {
+                  (pkgs.rust-bin.nightly."2026-10-10".minimal.override {
                     extensions = [ "llvm-tools" ];{% if project-kind == "embedded" %}
                     targets = [ "thumbv7em-none-eabihf" ];{% endif %}
                   })
