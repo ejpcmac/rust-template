@@ -9,7 +9,7 @@ use hal::gpio::{Level, Output, Speed};
 /// A LED.
 pub type Led = Output<'static>;
 
-/// Peripherals of the Nucleo-L476RG
+/// Peripherals of the Nucleo-L476RG.
 #[expect(missing_debug_implementations, reason = "not implemented by fields")]
 pub struct Board {
     /// The LD2 LED.
