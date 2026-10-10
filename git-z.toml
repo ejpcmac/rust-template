@@ -84,6 +84,7 @@ list = [
 
     # Skills
     "s:check-template",
+    "s:modernise",
 
     # Tools
     "cargo-generate",

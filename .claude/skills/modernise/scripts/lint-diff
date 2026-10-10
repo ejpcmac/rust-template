@@ -1,0 +1,281 @@
+#!/bin/sh
+
+# Compares the lints of two Rust toolchains and validates the lints of the
+# template against the newer one.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: lint-diff <old version> <new version>
+
+Builds the two stable toolchains with Nix, reads the rustc and clippy lints of
+each from \`clippy-driver -W help\`, and prints the lints added, removed, with
+a changed default level and with a changed group. Then validates every entry
+of scripts/lints.rhai, as it is in the working copy, against the lints and
+groups of the new toolchain, and exits with an error if one is unknown.
+
+Versions are full ones, like 1.91.0. Names are printed as they are written in
+a manifest, clippy lints with a \`clippy::\` prefix. A lint that is in
+scripts/lints.rhai is marked with [lints.rhai].
+
+A renamed lint shows as one removal and one addition. rustc lists the lints
+behind a feature gate as any other.
+EOF
+    exit 2
+}
+
+die() {
+    echo "lint-diff: $1" >&2
+    exit 1
+}
+
+# Prints the store path of a stable toolchain with clippy.
+toolchain() {
+    echo "$1" | grep -qxE '[0-9]+\.[0-9]+\.[0-9]+' ||
+        die "\`$1\` is not a full version, like 1.91.0"
+
+    # shellcheck disable=SC2016 # This is a Nix expression.
+    nix build --impure --no-link --print-out-paths --argstr version "$1" \
+        --expr '
+            { version }:
+            let
+              overlay = builtins.getFlake "github:oxalica/rust-overlay";
+              pkgs = import overlay.inputs.nixpkgs {
+                system = builtins.currentSystem;
+                overlays = [ overlay.overlays.default ];
+              };
+            in
+            pkgs.rust-bin.stable.${version}.minimal.override {
+              extensions = [ "clippy" ];
+            }
+        ' 2>"$scratch/nix.log" || {
+        cat "$scratch/nix.log" >&2
+        die "cannot build the toolchain $1"
+    }
+}
+
+# Writes the lints and the groups of a toolchain to a file, as
+# `lint <name> <level> <groups>` and `group <name>` lines separated by tabs.
+lints() {
+    "$2/bin/clippy-driver" -W help >"$scratch/help" ||
+        die "cannot list the lints of $1"
+
+    awk -v version="$1" '
+        function fail(message) {
+            printf "lint-diff: %s, line %d: %s\n", version, NR, message \
+                >"/dev/stderr"
+            failed = 1
+            exit 1
+        }
+
+        function name(raw) {
+            if (raw !~ /^(clippy::)?[a-z0-9]+(-[a-z0-9]+)*$/)
+                fail("`" raw "` is not the name of a lint")
+            gsub(/-/, "_", raw)
+            return raw
+        }
+
+        /^Lint checks .*:$/ { table = "checks"; next }
+        /^Lint groups .*:$/ { table = "groups"; next }
+
+        # The options of the command line come before the first table.
+        table == "" { next }
+
+        NF == 0 { next }
+        $1 == "name" && ($2 == "default" || $2 == "sub-lints") { next }
+        $1 == "----" { next }
+
+        table == "checks" {
+            lint = name($1)
+            if ($2 !~ /^(allow|warn|deny|forbid)$/)
+                fail("`" $2 "` is not a level")
+            if (lint in level)
+                fail("`" lint "` is listed twice")
+            level[lint] = $2
+            next
+        }
+
+        table == "groups" {
+            group = name($1)
+            if (NF < 2)
+                fail("the group `" group "` has no lints")
+            if (group in is_group)
+                fail("`" group "` is listed twice")
+            is_group[group] = 1
+
+            # These two are not categories: one is every lint that warns, the
+            # other the union of the clippy groups enabled by default.
+            if (group == "warnings" || group == "clippy::all")
+                next
+
+            sub(/^ *[^ ]+ +/, "")
+            count = split($0, members, /, */)
+            for (i = 1; i <= count; i++) {
+                lint = name(members[i])
+                groups[lint] = (lint in groups ? groups[lint] "," : "") group
+            }
+            next
+        }
+
+        END {
+            if (failed)
+                exit 1
+
+            for (lint in groups)
+                if (!(lint in level)) {
+                    NR = 0
+                    fail("`" lint "` is in `" groups[lint] \
+                        "` and not in the lints")
+                }
+
+            for (lint in level) {
+                if (lint ~ /^clippy::/) {
+                    clippy++
+                    if (!(lint in groups) || groups[lint] ~ /,/) {
+                        NR = 0
+                        fail("`" lint "` is not in exactly one group: `" \
+                            groups[lint] "`")
+                    }
+                } else {
+                    rustc++
+                }
+                printf "lint\t%s\t%s\t%s\n", lint, level[lint], \
+                    (lint in groups ? groups[lint] : "-")
+            }
+
+            if (!rustc || !clippy) {
+                NR = 0
+                fail("no rustc lints or no clippy lints")
+            }
+
+            for (group in is_group)
+                printf "group\t%s\n", group
+        }
+    ' "$scratch/help" >"$3" || die "cannot read the lints of $1"
+}
+
+# Prints the entries of scripts/lints.rhai, one per line.
+entries() {
+    awk '
+        function fail(message) {
+            printf "lint-diff: scripts/lints.rhai, line %d: %s\n", NR, \
+                message >"/dev/stderr"
+            failed = 1
+            exit 1
+        }
+
+        /^\[workspace\.lints\.rust\]$/ { table = 1; prefix = ""; next }
+        /^\[workspace\.lints\.clippy\]$/ {
+            table = 1
+            prefix = "clippy::"
+            next
+        }
+        /^\[/ { fail("unknown table") }
+
+        !table || /^$/ || /^#/ || /^`;$/ { next }
+
+        /^[a-z0-9_]+ = / { print prefix $1; count++; next }
+
+        { fail("neither a lint nor a comment") }
+
+        END {
+            if (!failed && !count) {
+                NR = 0
+                fail("no lints")
+            }
+        }
+    ' "$root/scripts/lints.rhai" || die "cannot read scripts/lints.rhai"
+}
+
+# Prints the lines of one comparison between the two toolchains.
+compare() {
+    awk -F '\t' -v comparison="$1" '
+        FNR == 1 { file++ }
+
+        file == 1 { enabled[$1] = 1; next }
+        $1 != "lint" { next }
+        file == 2 { old_level[$2] = $3; old_groups[$2] = $4; next }
+        { new_level[$2] = $3; new_groups[$2] = $4 }
+
+        function mark(lint) {
+            return lint in enabled ? "  [lints.rhai]" : ""
+        }
+
+        END {
+            for (lint in new_level) {
+                if (!(lint in old_level)) {
+                    if (comparison == "added")
+                        printf "%s  %s  %s\n", lint, new_level[lint], \
+                            new_groups[lint]
+                } else if (comparison == "level") {
+                    if (old_level[lint] != new_level[lint])
+                        printf "%s  %s -> %s%s\n", lint, old_level[lint], \
+                            new_level[lint], mark(lint)
+                } else if (comparison == "group") {
+                    if (old_groups[lint] != new_groups[lint])
+                        printf "%s  %s -> %s%s\n", lint, old_groups[lint], \
+                            new_groups[lint], mark(lint)
+                }
+            }
+
+            if (comparison == "removed")
+                for (lint in old_level)
+                    if (!(lint in new_level))
+                        printf "%s  %s  %s%s\n", lint, old_level[lint], \
+                            old_groups[lint], mark(lint)
+        }
+    ' "$scratch/entries" "$scratch/old" "$scratch/new" | LC_ALL=C sort
+}
+
+# Prints a titled list with the number of its lines.
+section() {
+    if [ -z "$2" ]; then
+        printf '%s (0)\n\n' "$1"
+    else
+        printf '%s (%d)\n' "$1" "$(echo "$2" | wc -l)"
+        echo "$2" | sed 's/^/  /'
+        echo
+    fi
+}
+
+# Prints the number of lints of a toolchain and its store path.
+summary() {
+    echo "$1: $(grep -c '^lint	[^:]*	' "$3") rustc lints," \
+        "$(grep -c '^lint	clippy::' "$3") clippy lints, in $2"
+}
+
+[ $# -eq 2 ] || usage
+
+root=$(cd "$(dirname "$0")/../../../.." && pwd)
+
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+entries >"$scratch/entries"
+
+old_toolchain=$(toolchain "$1")
+new_toolchain=$(toolchain "$2")
+lints "$1" "$old_toolchain" "$scratch/old"
+lints "$2" "$new_toolchain" "$scratch/new"
+
+summary "$1" "$old_toolchain" "$scratch/old"
+summary "$2" "$new_toolchain" "$scratch/new"
+echo
+
+section "Added: name, level, group" "$(compare added)"
+section "Removed: name, level, group" "$(compare removed)"
+section "Level changed" "$(compare level)"
+section "Group changed" "$(compare group)"
+
+# A lint unknown to the toolchain never fails a check: it is only a warning,
+# even under `-D warnings`.
+unknown=$(
+    awk -F '\t' '
+        FNR == NR { known[$2] = 1; next }
+        !($1 in known)
+    ' "$scratch/new" "$scratch/entries"
+)
+section "Entries of scripts/lints.rhai unknown to $2" "$unknown"
+
+[ -z "$unknown" ] || die "scripts/lints.rhai has entries unknown to $2"

@@ -1,0 +1,256 @@
+#!/bin/sh
+
+# Runs clippy on plain renders with a new toolchain and new lints, and prints
+# what fires.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: lint-probe [options] <new version> <output directory> [<lint>...]
+
+Renders each project type plain into <output directory>, as variant-matrix
+does, then in each render:
+
+- sets the channel of rust-toolchain.toml to <new version>, and rust-version
+  to its first two components in every workspace manifest;
+- adds each <lint> at \`warn\` to the [workspace.lints] of every workspace,
+  in the rust or the clippy table after its prefix;
+- runs \`cargo clippy --message-format=json\`, without \`-D warnings\`, in the
+  ci devshell: with \`--all-targets --all-features\` in the root workspace,
+  and once per board in \`firmware/\`.
+
+Prints, per project type, each lint that fires with the number of places and
+the files, then every diagnostic that is not a lint: compile errors, and the
+warnings of rustc without a lint name. Ends with a summary of the lints
+across project types. Exits with an error when a render fails, cargo cannot
+run, or a compile error shows.
+
+Versions are full ones, like 1.99.0. Lints are named as lint-diff prints
+them: \`clippy::<name>\` for clippy, the bare name for rustc. The output of
+clippy is kept in <output directory>/<variant>-<licence>.probe.json, that of
+cargo in <variant>-<licence>.probe.log. The build artifacts are deleted.
+
+options:
+  -r <revision>  template revision, as a jj revset (default: @)
+  -t <variant>   project type to probe, by name or short name; can be
+                 repeated (default: all the project types of the revision)
+EOF
+    exit 2
+}
+
+die() {
+    echo "lint-probe: $1" >&2
+    exit 1
+}
+
+# Sets the toolchain and adds the lints in a render.
+prepare() {
+    sed -i "s/^channel = .*/channel = \"$version\"/" "$1/rust-toolchain.toml"
+
+    for manifest in "$1/Cargo.toml" "$1/firmware/Cargo.toml"; do
+        [ -f "$manifest" ] || continue
+        sed -i "s/^rust-version = .*/rust-version = \"$msrv\"/" "$manifest"
+
+        for lint in $lints; do
+            case "$lint" in
+                clippy::*) table=clippy name="${lint#clippy::}" ;;
+                *) table=rust name="$lint" ;;
+            esac
+            grep -qE "^$name = " "$manifest" &&
+                die "\`$lint\` is already in $manifest"
+            sed -i "/^\[workspace\.lints\.$table\]\$/a $name = \"warn\"" \
+                "$manifest"
+        done
+    done
+}
+
+# Runs clippy in one workspace of a render, appending its JSON to
+# <render>.probe.json and its diagnostics to <render>.probe.tsv, as
+# tab-separated lines: `lint <name> <place>` or `other <level> <place>
+# <message>`. Arguments: the render, the workspace, the devshell, then the
+# options of clippy.
+clippy() {
+    render="$1" workspace="$2" devshell="$3"
+    shift 3
+
+    status=0
+    (
+        cd "$render/$workspace" &&
+            nix develop "$devshell#ci" -c \
+                cargo clippy --workspace --keep-going --message-format=json "$@" \
+                </dev/null
+    ) >"$render.probe.part" 2>>"$render.probe.log" || status=1
+    cat "$render.probe.part" >>"$render.probe.json"
+
+    # The summaries of a crate (`aborting due to`, `n warnings emitted`) have
+    # no span. The paths are relative to the workspace.
+    jq -r --arg prefix "${workspace#.}" '
+        select(.reason == "compiler-message")
+        | .message
+        | select(.spans | length > 0)
+        | (first(.spans[] | select(.is_primary)) // .spans[0]) as $span
+        | ($span.file_name
+            | if startswith("/") or $prefix == "" then . else "\($prefix)/\(.)"
+              end) as $file
+        | "\($file):\($span.line_start):\($span.column_start)" as $place
+        | if .code != null and (.code.code | test("^E[0-9]{4}$") | not)
+          then ["lint", .code.code, $place]
+          else ["other", .level, $place, (.message | split("\n")[0])]
+          end
+        | @tsv
+    ' "$render.probe.part" >"$render.probe.new"
+    cat "$render.probe.new" >>"$render.probe.tsv"
+
+    # A failure of cargo without an error to show for it, as when the
+    # devshell cannot be built, leaves the workspace unprobed.
+    if [ "$status" -ne 0 ] && ! grep -q '^other	error' "$render.probe.new"
+    then
+        [ "$workspace" = . ] && where="the root workspace" ||
+            where="$workspace/"
+        echo "  cargo has failed without a diagnostic in $where," \
+            "see $render.probe.log"
+    fi
+    rm "$render.probe.part" "$render.probe.new"
+
+    return "$status"
+}
+
+# Probes one render.
+probe() {
+    render="$1"
+    : >"$render.probe.json"
+    : >"$render.probe.log"
+    : >"$render.probe.tsv"
+
+    git -C "$render" init -q
+    prepare "$render"
+    git -C "$render" add -A
+
+    failed=0
+    clippy "$render" . "$render" --all-targets --all-features || failed=1
+
+    if [ -d "$render/firmware" ]; then
+        boards=$(sed -n 's/^const BOARDS: &str = "\(.*\)";$/\1/p' \
+            "$render/xtask/src/main.rs" | tr ',' ' ')
+        [ -n "$boards" ] || die "no boards in $render/xtask/src/main.rs"
+        for board in $boards; do
+            clippy "$render" firmware "$render" --features "$board" || failed=1
+        done
+    fi
+
+    find "$render" -type d -name target -prune -exec rm -rf {} +
+
+    # A place is seen once per target and per board.
+    LC_ALL=C sort -u -o "$render.probe.tsv" "$render.probe.tsv"
+
+    [ "$failed" -eq 0 ]
+}
+
+# Prints the lints of a probe: name, number of places, files.
+report_lints() {
+    awk -F '\t' '
+        $1 == "lint" {
+            file = $3
+            sub(/:[0-9]+:[0-9]+$/, "", file)
+            count[$2]++
+            if (!(($2, file) in seen)) {
+                seen[$2, file] = 1
+                files[$2] = ($2 in files ? files[$2] ", " : "") file
+            }
+        }
+        END {
+            for (lint in count)
+                printf "  %s  %d  %s\n", lint, count[lint], files[lint]
+        }
+    ' "$1" | LC_ALL=C sort
+}
+
+[ $# -ge 1 ] || usage
+
+revision="@"
+variants=""
+
+while getopts "r:t:" option; do
+    case "$option" in
+        r) revision="$OPTARG" ;;
+        t) variants="${variants:+$variants
+}$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+[ $# -ge 2 ] || usage
+
+version="$1"
+output="$2"
+shift 2
+lints="$*"
+
+echo "$version" | grep -qxE '[0-9]+\.[0-9]+\.[0-9]+' ||
+    die "\`$version\` is not a full version, like 1.99.0"
+msrv="${version%.*}"
+
+for lint in $lints; do
+    echo "$lint" | grep -qxE '(clippy::)?[a-z0-9_]+' ||
+        die "\`$lint\` is not the name of a lint"
+done
+
+command -v jq >/dev/null || die "jq is not in PATH"
+
+root=$(cd "$(dirname "$0")/../../../.." && pwd)
+
+set --
+while IFS= read -r variant; do
+    [ -z "$variant" ] || set -- "$@" -t "$variant"
+done <<EOF
+$variants
+EOF
+"$root/.claude/scripts/variant-matrix" -r "$revision" "$@" "$output" ||
+    true
+output=$(cd "$output" && pwd)
+
+failures=0
+
+for render in "$output"/*; do
+    [ -d "$render" ] || continue
+    name=$(basename "$render")
+    echo "== $name"
+
+    if [ -f "$render.render.log" ]; then
+        echo "  cannot render, see $render.render.log"
+        failures=$((failures + 1))
+        continue
+    fi
+
+    if ! probe "$render"; then
+        failures=$((failures + 1))
+    fi
+
+    echo "Lints: name, places, files"
+    report_lints "$render.probe.tsv"
+    echo "Not lints: level, place, message"
+    awk -F '\t' '$1 == "other" { printf "  %s  %s  %s\n", $2, $3, $4 }' \
+        "$render.probe.tsv"
+    echo
+done
+
+echo "== Summary: lint, places, project types"
+for tsv in "$output"/*.probe.tsv; do
+    [ -f "$tsv" ] || continue
+    name=$(basename "$tsv" .probe.tsv)
+    awk -F '\t' -v name="$name" '$1 == "lint" { print $2 "\t" name }' "$tsv"
+done | awk -F '\t' '
+    { count[$1]++ }
+    !(($1, $2) in seen) {
+        seen[$1, $2] = 1
+        types[$1] = ($1 in types ? types[$1] ", " : "") $2
+    }
+    END {
+        for (lint in count)
+            printf "  %s  %d  %s\n", lint, count[lint], types[lint]
+    }
+' | LC_ALL=C sort
+
+[ "$failures" -eq 0 ] || die "$failures project type(s) have failed"
