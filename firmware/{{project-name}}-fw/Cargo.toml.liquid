@@ -32,12 +32,12 @@ defmt-rtt = "1"
 panic-probe = { version = "1", features = ["print-defmt"] }
 {{project-name}}-app = { path = "../{{project-name}}-app"{% if project-type != "Embedded (Bare-metal)" %}, features = ["embedded-hal"]{% endif %} }
 {{project-name}}-board = { path = "../{{project-name}}-board"{% if project-type == "Embedded (Embassy)" %}, features = ["embassy"]{% endif %} }{% if project-type == "Embedded (Embassy)" %}
-embassy-executor = { version = "0.7.0", features = [
-    "arch-cortex-m",
+embassy-executor = { version = "0.10", features = [
+    "platform-cortex-m",
     "defmt",
     "executor-thread",
 ] }
-embassy-time = { version = "0.4.0", features = [
+embassy-time = { version = "0.5", features = [
     "defmt",
     "defmt-timestamp-uptime",
 ] }{% elsif project-type == "Embedded (RTIC)" %}

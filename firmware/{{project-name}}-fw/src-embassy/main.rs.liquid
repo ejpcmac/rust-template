@@ -30,10 +30,10 @@ async fn main(spawner: Spawner) {
 
     let app = {{project-name|upper_camel_case}}App::new(led, Delay);
 
-    defmt::expect!(
-        spawner.spawn(blink(app.blink)),
+    spawner.spawn(defmt::expect!(
+        blink(app.blink),
         "failed to spawn the blink task"
-    );
+    ));
 
     defmt::info!("Firmware initialised!");
 }
