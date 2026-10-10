@@ -65,6 +65,7 @@ list = [
     "t:src@bare-metal",
     "t:src@cli",
     "t:src@embassy",
+    "t:src@embedded",
     "t:src@minimal",
     "t:src@rtic",
     "t:taplo",
