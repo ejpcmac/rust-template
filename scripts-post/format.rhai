@@ -1,15 +1,19 @@
 // Formats the generated project with the formatters of its devshell.
 
-const FORMATTERS = [
+let formatters = [
     ["cargo", "fmt", "--all"],
     ["nixpkgs-fmt", "."],
     ["taplo", "fmt"],
     ["prettier", "--write", "."],
 ];
 
+if variable::get("project-kind") == "embedded" {
+    formatters.insert(1, ["cargo", "fmt", "--manifest-path=firmware/Cargo.toml", "--all"]);
+}
+
 const SCRIPT = "scripts-post/format.sh";
 
-let commands = FORMATTERS.map(
+let commands = formatters.map(
     |formatter| formatter.extract(1).reduce(|command, arg| `${command} ${arg}`, formatter[0])
 );
 
