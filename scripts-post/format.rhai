@@ -7,14 +7,16 @@ const FORMATTERS = [
     ["prettier", "--write", "."],
 ];
 
+const SCRIPT = "scripts-post/format.sh";
+
+let commands = FORMATTERS.map(
+    |formatter| formatter.extract(1).reduce(|command, arg| `${command} ${arg}`, formatter[0])
+);
+
 try {
-    for formatter in FORMATTERS {
-        system::command("nix", ["develop", ".#ci", "-c"] + formatter);
-    }
+    file::write(SCRIPT, ["set -e"] + commands);
+    system::command("nix", ["develop", ".#ci", "-c", "sh", SCRIPT]);
 } catch (err) {
-    let commands = FORMATTERS.map(
-        |formatter| formatter.extract(1).reduce(|command, arg| `${command} ${arg}`, formatter[0])
-    );
     let commands = commands
         .extract(1)
         .reduce(|commands, command| `${commands} && ${command}`, commands[0]);
