@@ -19,10 +19,11 @@ When a render fails, the output of cargo-generate is in
 is rendered all the same.
 
 With -c, also runs \`cargo xtask check\` in the CI devshell of each render, and
-writes the output to <output directory>/<variant>-<licence>.log. The renders
-are then formatted, as with -f, and get a Git repository and a Cargo.lock:
-compare renders made without -c. The build artifacts are deleted after the
-checks, unless -k is given.
+writes the output to <output directory>/<variant>-<licence>.log. It prints a
+\`checking\` line when a render starts, and copies every line it prints to
+<output directory>/summary. The renders are then formatted, as with -f, and
+get a Git repository and a Cargo.lock: compare renders made without -c. The
+build artifacts are deleted after the checks, unless -k is given.
 
 With -u, a render that already exists in the output directory is updated in
 place: the project type is rendered again into a temporary directory, then
@@ -144,11 +145,19 @@ update_render() {
     rm -rf "$render.update" "$render.render.log"
 }
 
+# Prints a line of the summary, and copies it to the summary file when there
+# are checks to run.
+report() {
+    echo "$1"
+    [ -z "$checks" ] || echo "$1" >>"$output/summary"
+}
+
 # Renders a project type with a licence, then runs the checks, if any.
 process() {
     # NOTE: `set -e` has no effect here, as the function is called before `||`.
     render="$output/$(short_name "$1")-$2"
 
+    [ -z "$checks" ] || report "checking  $render"
     rm -f "$render.render.log"
     if [ "$update" = true ] && [ -d "$render" ]; then
         done_message="updated "
@@ -160,13 +169,13 @@ process() {
     fi
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
-        echo "FAILED    $render  (cannot render, see $render.render.log)"
+        report "FAILED    $render  (cannot render, see $render.render.log)"
         echo >>"$failures"
         return
     fi
 
     if [ -z "$checks" ]; then
-        echo "$done_message  $render"
+        report "$done_message  $render"
         return
     fi
 
@@ -180,7 +189,7 @@ process() {
     if [ "$keep_artifacts" = false ]; then
         find "$render" -type d -name target -prune -exec rm -rf {} +
     fi
-    echo "$result  $render  ($(($(date +%s) - start)) s, see $render.log)"
+    report "$result  $render  ($(($(date +%s) - start)) s, see $render.log)"
 }
 
 revision="@"
@@ -270,6 +279,9 @@ mkdir -p "$1"
 output=$(cd "$1" && pwd)
 [ "$update" = true ] || [ -z "$(ls -A "$output")" ] ||
     die "$output is not empty"
+
+# The summary is that of this run only.
+rm -f "$output/summary"
 
 state=$(mktemp -d)
 trap 'rm -rf "$state"' EXIT

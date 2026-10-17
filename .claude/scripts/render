@@ -11,8 +11,9 @@ usage: render [options] -t <project type> <destination>
 Renders the template at a given revision, with a given set of answers.
 The destination must be empty or not exist.
 
-When the generation or the formatting fails, the output of cargo-generate is
-kept in <destination>.render.log.
+The output of cargo-generate is written to <destination>.render.log as it
+goes. The log is deleted when the render succeeds, and ends with the error
+otherwise.
 
 options:
   -r <revision>     template revision, as a jj revset (default: @)
@@ -84,11 +85,12 @@ mkdir -p "$1"
 destination=$(cd "$1" && pwd)
 [ -z "$(ls -A "$destination")" ] || die "$destination is not empty"
 
-# Keep the log of a failure, as the output of a background run may be lost.
+# Write the log next to the render, so that it can be followed during a
+# background run and read after a failure.
 log="$destination.render.log"
 rm -f "$log"
 fail() {
-    cp "$scratch/log" "$log"
+    echo "render: $1" >>"$log"
     cat "$log" >&2
     die "$1 (see $log)"
 }
@@ -112,12 +114,14 @@ if ! (
             --define "project-type=$project_type" \
             --define "license=$licence" \
             --define "github-username=$github_username" \
-            </dev/null >"$scratch/log" 2>&1
+            </dev/null >"$log" 2>&1
 ); then
     fail "cannot render \`$project_type\` at $commit"
 fi
 
 # The formatting hook reports its failure without failing the generation.
-if [ -n "$allow_commands" ] && grep -q "has not been formatted" "$scratch/log"; then
+if [ -n "$allow_commands" ] && grep -q "has not been formatted" "$log"; then
     fail "cannot format \`$project_type\` at $commit"
 fi
+
+rm -f "$log"
