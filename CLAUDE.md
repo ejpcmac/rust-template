@@ -77,6 +77,10 @@ code organisation and practices of the author's projects.
 ## Changes and commits
 
 - One change per logical unit, committed with `jj commit <files> -m`.
+- jj reads `{{project-name}}` in a path as fileset syntax and commits
+  nothing: quote the path as `'file:"{{project-name}}/Cargo.toml.liquid"'`.
+  A failed `jj commit` in a chain of commands leaves its files in the working
+  copy, for the next commit to take: check that each one has succeeded.
 - Descriptions follow `type(scope): subject`, with a subject in the
   imperative, lower case, without a final period.
 - The type and the scope are among those of `git-z.toml` (the plain one, not
