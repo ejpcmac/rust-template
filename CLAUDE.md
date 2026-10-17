@@ -36,6 +36,10 @@ code organisation and practices of the author's projects.
   hardware-agnostic `-app` crate) and `firmware/`, with its own `Cargo.toml`,
   lock file and `target`. The `-app` crate of `Embedded (Bare-metal)` has its
   own sources, `src-bare-metal`.
+- The skills of `.claude/skills` name template files, project types,
+  devshells, `xtask` checks and the options of `.claude/scripts`. A change
+  that moves, renames, adds or removes one of them updates the skills in the
+  same commit: `grep -rn '<old name>' .claude/skills` finds what to update.
 
 ## Template output
 
