@@ -92,6 +92,8 @@ code organisation and practices of the author's projects.
   `fix(t:flake@cli): …`. Omit `@<variant>` when every project type is
   affected. `<variant>` is `minimal`, `cli`, `embedded`, `bare-metal`,
   `embassy` or `rtic`.
-- A change to the repository itself has a scope without `t:`, usually with
-  the `env` or `chore` type.
+- A change to a script of `.claude/scripts` has the scope `x:<script>`:
+  `env(x:render): …`. A change to several scripts keeps `claude`.
+- A change to the repository itself has a scope without a prefix, usually
+  with the `env` or `chore` type.
 - Never add a `Co-Authored-By: Claude` line to a description.

@@ -126,6 +126,14 @@ shift $((OPTIND - 1))
 scripts=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$scripts/../.." && pwd)
 
+# Resolve the revision once, so that every render is of the same commit, even
+# when the working copy changes during the run.
+commit=$(cd "$root" && jj log --no-graph -r "$revision" -T 'commit_id ++ "\n"') ||
+    die "cannot resolve the revision \`$revision\`"
+[ "$(echo "$commit" | wc -l)" -eq 1 ] && [ -n "$commit" ] ||
+    die "the revision \`$revision\` must resolve to exactly one commit"
+revision="$commit"
+
 # The project types and licences are those of the rendered revision.
 options=$(cd "$root" && jj file show -r "$revision" scripts/options.rhai) ||
     die "cannot read scripts/options.rhai at \`$revision\`"
