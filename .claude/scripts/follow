@@ -1,0 +1,183 @@
+#!/bin/sh
+
+# Follows a run of variant-matrix, with one panel per render.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: follow <output directory>
+
+Follows the runs of \`variant-matrix -c\` in <output directory>, one after the
+other, until a key is pressed.
+
+Draws one panel per render of the run, as listed in <output directory>/summary:
+a header with the name of the render, its state and its elapsed time, then the
+last lines of its current log. The running renders share the height of the
+terminal; a pending or finished render shows its header only. At the end of
+the run, a last line gives the counts. The panels are drawn again when a file
+of <output directory> changes, at most ten times a second, and every second
+for the elapsed times. A new run in <output directory> replaces the previous
+one.
+
+The elapsed time of a running render is counted from when follow has seen it
+start; that of a finished one is the duration of its checks.
+EOF
+    exit 2
+}
+
+[ $# -eq 1 ] || usage
+[ -d "$1" ] || usage
+output=$(cd "$1" && pwd)
+summary="$output/summary"
+
+command -v inotifywait >/dev/null ||
+    { echo "follow: inotifywait is missing" >&2; exit 1; }
+
+state=$(mktemp -d)
+# The time when each render has been seen to start, as `<render> <time>`.
+starts="$state/starts"
+: >"$starts"
+
+# Read the keys one at a time, without waiting for them.
+tty_settings=$(stty -g)
+
+cleanup() {
+    stty "$tty_settings"
+    tput cnorm
+    tput rmcup
+    rm -rf "$state"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+tput smcup
+tput civis
+stty -icanon -echo min 0 time 0
+
+# Prints the renders of the run with their last state, as
+# `<render> <state> <rest of the line>`, in the order they have started.
+renders() {
+    [ -f "$summary" ] || return 0
+    awk '
+        $1 == "done" { next }
+        {
+            state = $1
+            render = $2
+            sub(/.*\//, "", render)
+            rest = $0
+            sub(/^[^ ]+ +[^ ]+ */, "", rest)
+            sub(/, see .*\)$/, ")", rest)
+            if (!(render in last)) order[n++] = render
+            last[render] = state " " rest
+        }
+        END { for (i = 0; i < n; i++) print order[i], last[order[i]] }
+    ' "$summary"
+}
+
+# Prints the counts of the run when it has ended.
+outcome() {
+    [ -f "$summary" ] || return 0
+    awk '$1 == "done" { sub(/^done +/, ""); print }' "$summary"
+}
+
+# Forgets the start of the renders that are not running, so that a render
+# checked again by a later run is timed from its new start.
+forget_starts() {
+    printf '%s\n' "$1" |
+        awk 'NR == FNR { if ($2 == "checking") running[$1]; next }
+             $1 in running' - "$starts" >"$starts.new"
+    mv "$starts.new" "$starts"
+}
+
+# Prints the most recently modified log of a render.
+current_log() {
+    # shellcheck disable=SC2012
+    ls -t "$output/$1.log" "$output/$1.render.log" \
+        "$output/$1.update.render.log" 2>/dev/null | head -n 1
+}
+
+# Prints the last lines of a log, without the escape sequences of the colours
+# and with the progress bars of cargo split into lines.
+log_tail() {
+    tail -c 65536 "$1" 2>/dev/null |
+        tr '\r' '\n' |
+        sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' |
+        grep -v '^[[:space:]]*$' |
+        tail -n "$2"
+}
+
+draw() {
+    now=$(date +%s)
+    rows=$(tput lines)
+    cols=$(tput cols)
+    list=$(renders)
+    forget_starts "$list"
+
+    if [ -z "$list" ]; then
+        frame="waiting for $summary"
+    else
+        ended=$(outcome)
+        count=$(echo "$list" | wc -l)
+        [ -z "$ended" ] || count=$((count + 1))
+        running=$(echo "$list" | awk '$2 == "checking"' | wc -l)
+        height=0
+        if [ "$running" -gt 0 ]; then
+            height=$(((rows - count) / running))
+        fi
+
+        frame=$(
+            echo "$list" | while read -r render render_state rest; do
+                if [ "$render_state" = checking ]; then
+                    start=$(awk -v r="$render" '$1 == r { print $2 }' "$starts")
+                    if [ -z "$start" ]; then
+                        start=$now
+                        echo "$render $start" >>"$starts"
+                    fi
+                    elapsed=$((now - start))
+                    printf '\033[7m %s  running  %dm%02ds \033[0m\n' \
+                        "$render" $((elapsed / 60)) $((elapsed % 60))
+                    log=$(current_log "$render")
+                    if [ -n "$log" ] && [ "$height" -gt 0 ]; then
+                        log_tail "$log" "$height"
+                    fi
+                else
+                    printf '\033[1m %s  %s  %s\033[0m\n' \
+                        "$render" "$render_state" "$rest"
+                fi
+            done
+            if [ -n "$ended" ]; then
+                printf '\033[7m done: %s; press a key to close \033[0m\n' \
+                    "$ended"
+            fi
+        )
+    fi
+
+    # Cut the lines at the width, without counting the escape sequences, and
+    # clear what remains of each line and of the screen. No newline ends the
+    # last line, so that a full screen does not scroll.
+    printf '\033[H%s\033[K\033[J' "$(
+        echo "$frame" | awk -v cols="$cols" -v rows="$rows" '
+            NR > rows { exit }
+            {
+                line = $0
+                visible = line
+                gsub(/\033\[[0-9;]*m/, "", visible)
+                if (length(visible) > cols) {
+                    gsub(/\033\[[0-9;]*m/, "", line)
+                    line = substr(line, 1, cols)
+                }
+                if (NR > 1) printf "\033[K\n"
+                printf "%s", line
+            }
+        '
+    )"
+}
+
+while :; do
+    draw
+    [ -z "$(dd bs=1 count=1 2>/dev/null)" ] || exit 0
+    inotifywait -q -t 1 -e modify,create,delete,moved_to "$output" \
+        >/dev/null 2>&1 || :
+    sleep 0.1
+done
