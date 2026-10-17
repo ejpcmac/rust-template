@@ -14,7 +14,8 @@ Renders each project type into <output directory>/<variant>-<licence>, where
 embassy, rtic). The output directory must be empty or not exist.
 
 When a render fails, the output of cargo-generate is in
-<output directory>/<variant>-<licence>.render.log.
+<output directory>/<variant>-<licence>.render.log, and the next project type
+is rendered all the same.
 
 With -c, also runs \`cargo xtask check\` in the CI devshell of each render, and
 writes the output to <output directory>/<variant>-<licence>.log. The renders
@@ -173,8 +174,12 @@ failures=0
 while IFS= read -r project_type; do
     while IFS= read -r licence; do
         render="$output/$(short_name "$project_type")-$licence"
-        "$scripts/render" -r "$revision" -t "$project_type" -l "$licence" \
-            $format "$render"
+        if ! "$scripts/render" -r "$revision" -t "$project_type" \
+            -l "$licence" $format "$render"; then
+            echo "FAILED    $render  (cannot render, see $render.render.log)"
+            failures=$((failures + 1))
+            continue
+        fi
 
         if [ -z "$checks" ]; then
             echo "rendered  $render"
@@ -199,4 +204,4 @@ done <<EOF
 $project_types
 EOF
 
-[ "$failures" -eq 0 ] || die "the checks have failed for $failures render(s)"
+[ "$failures" -eq 0 ] || die "$failures render(s) have failed"
