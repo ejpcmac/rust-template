@@ -13,6 +13,9 @@ Renders each project type into <output directory>/<variant>-<licence>, where
 <variant> is the short name of the project type (minimal, cli, bare-metal,
 embassy, rtic). The output directory must be empty or not exist.
 
+When a render fails, the output of cargo-generate is in
+<output directory>/<variant>-<licence>.render.log.
+
 With -c, also runs \`cargo xtask check\` in the CI devshell of each render, and
 writes the output to <output directory>/<variant>-<licence>.log. The renders
 are then formatted, as with -f, and get a Git repository and a Cargo.lock:

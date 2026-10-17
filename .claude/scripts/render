@@ -11,6 +11,9 @@ usage: render [options] -t <project type> <destination>
 Renders the template at a given revision, with a given set of answers.
 The destination must be empty or not exist.
 
+When the generation or the formatting fails, the output of cargo-generate is
+kept in <destination>.render.log.
+
 options:
   -r <revision>     template revision, as a jj revset (default: @)
   -t <project type> project type, as listed in scripts/options.rhai
@@ -81,6 +84,15 @@ mkdir -p "$1"
 destination=$(cd "$1" && pwd)
 [ -z "$(ls -A "$destination")" ] || die "$destination is not empty"
 
+# Keep the log of a failure, as the output of a background run may be lost.
+log="$destination.render.log"
+rm -f "$log"
+fail() {
+    cp "$scratch/log" "$log"
+    cat "$log" >&2
+    die "$1 (see $log)"
+}
+
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
@@ -102,12 +114,10 @@ if ! (
             --define "github-username=$github_username" \
             </dev/null >"$scratch/log" 2>&1
 ); then
-    cat "$scratch/log" >&2
-    die "cannot render \`$project_type\` at $commit"
+    fail "cannot render \`$project_type\` at $commit"
 fi
 
 # The formatting hook reports its failure without failing the generation.
 if [ -n "$allow_commands" ] && grep -q "has not been formatted" "$scratch/log"; then
-    cat "$scratch/log" >&2
-    die "cannot format \`$project_type\` at $commit"
+    fail "cannot format \`$project_type\` at $commit"
 fi
