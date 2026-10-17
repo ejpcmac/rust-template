@@ -20,8 +20,9 @@ is rendered all the same.
 
 With -c, also runs \`cargo xtask check\` in the CI devshell of each render, and
 writes the output to <output directory>/<variant>-<licence>.log. It prints a
-\`checking\` line when a render starts, and copies every line it prints to
-<output directory>/summary. The renders are then formatted, as with -f, and
+\`pending\` line for each render first, a \`checking\` line when a render
+starts and a \`done\` line with the counts at the end, and copies every line it
+prints to <output directory>/summary. The renders are then formatted, as with -f, and
 get a Git repository and a Cargo.lock: compare renders made without -c. The
 build artifacts are deleted after the checks, unless -k is given.
 
@@ -182,6 +183,7 @@ process() {
     start=$(date +%s)
     if run_checks "$render"; then
         result="passed  "
+        echo >>"$passes"
     else
         result="FAILED  "
         echo >>"$failures"
@@ -286,10 +288,26 @@ rm -f "$output/summary"
 state=$(mktemp -d)
 trap 'rm -rf "$state"' EXIT
 
-# Each failed render adds a line to this file, as the renders run in
-# background jobs, which cannot share a counter.
+# Each passed or failed render adds a line to one of these files, as the
+# renders run in background jobs, which cannot share a counter.
+passes="$state/passes"
 failures="$state/failures"
+: >"$passes"
 : >"$failures"
+
+# List the renders to check before any starts, so that the summary shows the
+# whole run from its beginning.
+if [ -n "$checks" ]; then
+    while IFS= read -r project_type; do
+        while IFS= read -r licence; do
+            report "pending   $output/$(short_name "$project_type")-$licence"
+        done <<EOF
+$licences
+EOF
+    done <<EOF
+$project_types
+EOF
+fi
 
 # Limit the number of jobs with tokens in a FIFO: a job takes one before it
 # starts and gives it back when it ends.
@@ -317,4 +335,6 @@ EOF
 wait
 
 count=$(wc -l <"$failures")
+[ -z "$checks" ] ||
+    report "done      $(wc -l <"$passes") passed, $count failed"
 [ "$count" -eq 0 ] || die "$count render(s) have failed"
