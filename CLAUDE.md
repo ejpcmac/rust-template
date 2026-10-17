@@ -45,9 +45,9 @@ code organisation and practices of the author's projects.
 - The formatters of the hook and those verified by `check_format` in
   `xtask/src/main.rs.liquid` are the same list. A formatter goes in both.
 - **Nothing is pinned in a render**: the template ships no `flake.lock` and no
-  `Cargo.lock`, and its `nixpkgs` input is the default branch. A render is
-  checked against the `nixpkgs` and the crates of the day, so a check can fail
-  without any change to the template.
+  `Cargo.lock`, and its `nixpkgs` input is the `nixpkgs-unstable` branch. A
+  render is checked against the `nixpkgs` and the crates of the day, so a
+  check can fail without any change to the template.
 
 ## Rendering and checking
 
