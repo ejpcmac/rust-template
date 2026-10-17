@@ -53,8 +53,11 @@ code organisation and practices of the author's projects.
 
 - `.claude/scripts/render` renders one project type at a jj revision, without
   a prompt. `.claude/scripts/variant-matrix` renders every project type and,
-  with `-c`, runs their checks. Both print their usage when run with no
-  arguments.
+  with `-c`, runs their checks: `-j` runs project types at once, `-u`
+  updates kept renders for incremental checks. `.claude/scripts/follow`
+  shows a running `variant-matrix -c` to the author; the agent reads the
+  `summary` and the logs of its output directory instead. All three print
+  their usage when run with no arguments.
 - To verify a change to the template, compare plain renders:
 
     ```

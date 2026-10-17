@@ -11,7 +11,8 @@ usage: variant-matrix [options] <output directory>
 
 Renders each project type into <output directory>/<variant>-<licence>, where
 <variant> is the short name of the project type (minimal, cli, bare-metal,
-embassy, rtic). The output directory must be empty or not exist.
+embassy, rtic). The output directory must be empty or not exist, unless -u is
+given.
 
 When a render fails, the output of cargo-generate is in
 <output directory>/<variant>-<licence>.render.log, and the next project type
@@ -22,6 +23,13 @@ writes the output to <output directory>/<variant>-<licence>.log. The renders
 are then formatted, as with -f, and get a Git repository and a Cargo.lock:
 compare renders made without -c. The build artifacts are deleted after the
 checks, unless -k is given.
+
+With -u, a render that already exists in the output directory is updated in
+place: the project type is rendered again into a temporary directory, then
+synchronised into the render, keeping its build artifacts, its Git repository,
+its Cargo.lock and its flake.lock, so that the next checks are incremental.
+With -c, the changes are then committed and Cargo.lock is generated again. A
+render that does not exist yet is rendered as without -u.
 
 options:
   -r <revision>  template revision, as a jj revset (default: @)
@@ -34,6 +42,9 @@ options:
   -c <check>     check to run, as taken by \`cargo xtask check\`, or \`all\`;
                  can be repeated
   -k             keep the build artifacts of the checks
+  -u             update the existing renders in place; implies -k
+  -j <jobs>      number of project types to render and check at once, or
+                 \`all\` for every selected project type (default: 1)
 EOF
     exit 2
 }
@@ -66,19 +77,32 @@ commit() {
         commit -q -m "$1"
 }
 
+# Commits the staged changes, if there are any.
+commit_staged() {
+    git diff --cached --quiet || commit "$1"
+}
+
 run_checks() {
     # NOTE: `set -e` has no effect here, as the function is called in an `if`.
     (
         cd "$1" || exit 1
 
         # The checks need a Git repository on the main branch, with the lock
-        # files committed.
-        git init -q -b main &&
-            git add -A &&
-            commit "chore: render the template" &&
+        # files committed. An updated render already has one.
+        if [ -d .git ]; then
+            render_message="chore: update the render"
+            lock_message="chore: update the lock file"
+        else
+            git init -q -b main || exit 1
+            render_message="chore: render the template"
+            lock_message="chore: add the lock file"
+        fi
+
+        git add -A &&
+            commit_staged "$render_message" &&
             nix develop .#ci -c cargo generate-lockfile </dev/null &&
             git add -A &&
-            commit "chore: add the lock file" ||
+            commit_staged "$lock_message" ||
             exit 1
 
         status=0
@@ -96,14 +120,79 @@ EOF
     ) >"$1.log" 2>&1
 }
 
+# Renders a project type again into a temporary directory, then synchronises it
+# into an existing render. The lock file of the firmware workspace is not kept:
+# it is untracked and created by the checks, as in a fresh render.
+update_render() {
+    render="$1"
+    shift
+
+    rm -rf "$render.update" "$render.update.render.log"
+    if ! "$scripts/render" "$@" "$render.update" >/dev/null 2>&1; then
+        mv "$render.update.render.log" "$render.render.log"
+        rm -rf "$render.update"
+        return 1
+    fi
+
+    rsync -a --checksum --delete \
+        --exclude=/target/ \
+        --exclude=/.git/ \
+        --exclude=/Cargo.lock \
+        --exclude=/flake.lock \
+        "$render.update/" "$render/" >"$render.render.log" 2>&1 ||
+        return 1
+    rm -rf "$render.update" "$render.render.log"
+}
+
+# Renders a project type with a licence, then runs the checks, if any.
+process() {
+    # NOTE: `set -e` has no effect here, as the function is called before `||`.
+    render="$output/$(short_name "$1")-$2"
+
+    rm -f "$render.render.log"
+    if [ "$update" = true ] && [ -d "$render" ]; then
+        done_message="updated "
+        update_render "$render" -r "$revision" -t "$1" -l "$2" $format
+    else
+        done_message="rendered"
+        "$scripts/render" -r "$revision" -t "$1" -l "$2" $format "$render" \
+            >/dev/null 2>&1
+    fi
+    # shellcheck disable=SC2181
+    if [ $? -ne 0 ]; then
+        echo "FAILED    $render  (cannot render, see $render.render.log)"
+        echo >>"$failures"
+        return
+    fi
+
+    if [ -z "$checks" ]; then
+        echo "$done_message  $render"
+        return
+    fi
+
+    start=$(date +%s)
+    if run_checks "$render"; then
+        result="passed  "
+    else
+        result="FAILED  "
+        echo >>"$failures"
+    fi
+    if [ "$keep_artifacts" = false ]; then
+        find "$render" -type d -name target -prune -exec rm -rf {} +
+    fi
+    echo "$result  $render  ($(($(date +%s) - start)) s, see $render.log)"
+}
+
 revision="@"
 variants=""
 licences=""
 checks=""
 format=""
 keep_artifacts=false
+update=false
+jobs=1
 
-while getopts "r:t:l:fc:k" option; do
+while getopts "r:t:l:fc:kuj:" option; do
     case "$option" in
         r) revision="$OPTARG" ;;
         t) variants="${variants:+$variants
@@ -117,12 +206,22 @@ while getopts "r:t:l:fc:k" option; do
 }$OPTARG"
             ;;
         k) keep_artifacts=true ;;
+        u)
+            update=true
+            keep_artifacts=true
+            ;;
+        j) jobs="$OPTARG" ;;
         *) usage ;;
     esac
 done
 shift $((OPTIND - 1))
 
 [ $# -eq 1 ] || usage
+
+case "$jobs" in
+    all) ;;
+    "" | *[!0-9]* | 0*) die "-j takes a positive number or \`all\`" ;;
+esac
 
 scripts=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$scripts/../.." && pwd)
@@ -165,43 +264,45 @@ EOF
     project_types="$selected"
 fi
 
+[ "$jobs" = all ] && jobs=$(echo "$project_types" | wc -l)
+
 mkdir -p "$1"
 output=$(cd "$1" && pwd)
-[ -z "$(ls -A "$output")" ] || die "$output is not empty"
+[ "$update" = true ] || [ -z "$(ls -A "$output")" ] ||
+    die "$output is not empty"
 
-failures=0
+state=$(mktemp -d)
+trap 'rm -rf "$state"' EXIT
+
+# Each failed render adds a line to this file, as the renders run in
+# background jobs, which cannot share a counter.
+failures="$state/failures"
+: >"$failures"
+
+# Limit the number of jobs with tokens in a FIFO: a job takes one before it
+# starts and gives it back when it ends.
+mkfifo "$state/tokens"
+exec 3<>"$state/tokens"
+i=0
+while [ "$i" -lt "$jobs" ]; do
+    echo >&3
+    i=$((i + 1))
+done
 
 while IFS= read -r project_type; do
     while IFS= read -r licence; do
-        render="$output/$(short_name "$project_type")-$licence"
-        if ! "$scripts/render" -r "$revision" -t "$project_type" \
-            -l "$licence" $format "$render"; then
-            echo "FAILED    $render  (cannot render, see $render.render.log)"
-            failures=$((failures + 1))
-            continue
-        fi
-
-        if [ -z "$checks" ]; then
-            echo "rendered  $render"
-            continue
-        fi
-
-        start=$(date +%s)
-        if run_checks "$render"; then
-            result="passed  "
-        else
-            result="FAILED  "
-            failures=$((failures + 1))
-        fi
-        if [ "$keep_artifacts" = false ]; then
-            find "$render" -type d -name target -prune -exec rm -rf {} +
-        fi
-        echo "$result  $render  ($(($(date +%s) - start)) s, see $render.log)"
+        read -r _ <&3
+        (
+            process "$project_type" "$licence" 3>&- || :
+            echo >&3
+        ) &
     done <<EOF
 $licences
 EOF
 done <<EOF
 $project_types
 EOF
+wait
 
-[ "$failures" -eq 0 ] || die "$failures render(s) have failed"
+count=$(wc -l <"$failures")
+[ "$count" -eq 0 ] || die "$count render(s) have failed"
