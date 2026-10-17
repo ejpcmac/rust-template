@@ -33,9 +33,10 @@ code organisation and practices of the author's projects.
   between the two hooks, so a `post` script lives outside `scripts` and deletes
   its own directory.
 - An `Embedded` render has two workspaces: the root one (`xtask`, and the
-  hardware-agnostic `-app` crate) and `firmware/`, with its own `Cargo.toml`,
-  lock file and `target`. The `-app` crate of `Embedded (Bare-metal)` has its
-  own sources, `src-bare-metal`.
+  hardware-agnostic `-app` crate) and `firmware/`, with its own `Cargo.toml`
+  and lock file. Both build into the root `target`, as `firmware/` reads the
+  `target-dir` of the root `.cargo/config.toml`. The `-app` crate of
+  `Embedded (Bare-metal)` has its own sources, `src-bare-metal`.
 - The skills of `.claude/skills` name template files, project types,
   devshells, `xtask` checks and the options of `.claude/scripts`. A change
   that moves, renames, adds or removes one of them updates the skills in the
