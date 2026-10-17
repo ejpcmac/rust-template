@@ -43,6 +43,8 @@
               # Tools
               cargo-generate
               git-z
+              inotify-tools
+              rsync
             ];
           };
         };
