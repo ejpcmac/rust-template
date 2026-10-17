@@ -19,15 +19,21 @@ Without arguments, check every project type at `@` with all the checks.
 ### 1. Run the matrix
 
 ```
-.claude/scripts/variant-matrix -c all <scratch directory>/matrix
+.claude/scripts/variant-matrix -j all -c all <scratch directory>/matrix
 ```
 
-Done when the script has printed one `passed` or `FAILED` line per render, or
-one error from `render`. A render error is a defect too: skip to step 3 with
-it.
+The project types run at once. Read the outcome in
+`<scratch directory>/matrix/summary`. A check killed (`Killed`, `No space left
+on device`) is not a defect: the renders running at once have run out of
+memory or of space. Run it again with `-j 1`, and report it.
+
+Done when the script has printed one `passed` or `FAILED` line per render. A
+render that fails (`cannot render`) is a defect too: skip to step 3 with it.
+Its `.render.log` holds the output of cargo-generate, then the error of
+`render`:
 
 - `cannot render`: the generation scripts or a template file are at fault. The
-  output of cargo-generate above the error names the file.
+  output of cargo-generate names the file.
 - `cannot format`: the formatting hook has failed, and cargo-generate hides the
   output of its command. Reproduce it in a plain render:
 
