@@ -70,6 +70,8 @@ code organisation and practices of the author's projects.
 - `variant-matrix -c all` takes about 9 minutes for the five project types
   once the Nix store is warm: run it in the background with a timeout of 30
   minutes.
+- A background run reads the repository until it ends, as `sh` reads the
+  scripts as it goes: edit nothing under `.claude/scripts` until it ends.
 - Revisions older than `feat: allow options to be defined from the command
   line` cannot be rendered: `render` fails with `not a terminal`. Read the
   diff of the change instead.
