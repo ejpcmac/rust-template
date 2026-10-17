@@ -82,6 +82,9 @@ list = [
     "x:follow-pane",
     "x:variant-matrix",
 
+    # Skills
+    "s:check-template",
+
     # Tools
     "cargo-generate",
     "claude",

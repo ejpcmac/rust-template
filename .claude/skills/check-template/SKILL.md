@@ -55,7 +55,26 @@ Its `.render.log` holds the output of cargo-generate, then the error of
     Then run the formatters of `scripts-post/format.rhai` one by one in that
     devshell.
 
-If every render has passed, report it and stop.
+Then search the logs for evaluation warnings of Nix, which fail no check:
+
+```
+grep -ah 'evaluation warning' <scratch directory>/matrix/*.log | sort | uniq -c
+```
+
+The checks evaluate the `ci`, `rust-nightly` and `deb` devshells only. For
+the others, evaluate every devshell of one render per kind (`Minimal`, `CLI`,
+one `Embedded`), with its Git repository, which the matrix has made:
+
+```
+cd <render> && for shell in $(nix eval --json .#devShells.x86_64-linux \
+        --apply builtins.attrNames | jq -r '.[]'); do
+    nix eval --raw ".#devShells.x86_64-linux.$shell.drvPath" 2>&1 >/dev/null |
+        grep 'evaluation warning'
+done
+```
+
+Each warning is a defect (see "Evaluation warnings"). If every render has
+passed with no warning, report it and stop.
 
 ### 2. Find the cause of every failed check
 
@@ -140,6 +159,17 @@ supported by the following packages`. Either the workspace does not resolve
 
 To tell a drift from a regression, rerun the failed check with `-r` on the
 revision before the change.
+
+### Evaluation warnings
+
+`nix develop` prints `evaluation warning: …` and goes on: no check fails, so
+a deprecation stays until its removal breaks every render. `stdenv.isDarwin`
+in `flake.nix.liquid` was deprecated in May 2026 and seen in October only.
+
+- A warning that names an attribute the template uses is a **drift** in
+  `flake.nix.liquid`: replace the attribute with what the warning names.
+- A warning from an input of the render's flake (`rust-overlay`, `git-z`, …)
+  is not the template's to fix: report it, with the input.
 
 ### A check that compiles a compiler
 
