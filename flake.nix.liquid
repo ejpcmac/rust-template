@@ -109,7 +109,7 @@
               buildToolchain = version: with pkgs; [
                 (rustToolchain version){% if project-kind == "embedded" %}
                 flip-link{% endif %}
-              ] ++ lib.optionals (!stdenv.isDarwin) [
+              ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
                 clang
               ];
 
@@ -126,7 +126,7 @@
 
               nightlyCheckToolchain = with pkgs; [
                 cargo-udeps
-              ] ++ lib.optionals (!stdenv.isDarwin) [
+              ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
                 cargo-llvm-cov
               ];
 
