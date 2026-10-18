@@ -22,6 +22,16 @@ Without arguments, check every project type at `@` with all the checks.
 .claude/scripts/variant-matrix -j all -c all <scratch directory>/matrix
 ```
 
+Run it in the background, then show it to the author:
+
+```
+.claude/scripts/follow-pane <scratch directory>/matrix
+```
+
+Once the run has ended and no other is about to start, close the pane with
+`.claude/scripts/follow-pane -k`, before waiting for the author and at the end
+of the skill at the latest.
+
 The project types run at once. Read the outcome in
 `<scratch directory>/matrix/summary`. A check killed (`Killed`, `No space left
 on device`) is not a defect: the renders running at once have run out of
