@@ -1,0 +1,68 @@
+#!/bin/sh
+
+# Shows a run of variant-matrix to the author, in a tmux pane.
+
+set -eu
+
+usage() {
+    cat >&2 <<EOF
+usage: follow-pane <output directory>
+       follow-pane -k
+
+Shows the runs of \`variant-matrix -c\` in <output directory> with follow, in a
+pane of 80 columns at the right of the tmux window, without taking the focus.
+
+The pane is kept from one call to the next: a call with another output
+directory starts follow again in it, and a call with the same one leaves it as
+it is, as follow takes the next run by itself. A key pressed in the pane closes
+it; the next call opens a new one.
+
+With -k, closes the pane, if there is one.
+
+Outside tmux, prints the command to follow the runs instead, and -k does
+nothing.
+EOF
+    exit 2
+}
+
+[ $# -eq 1 ] || usage
+
+# Prints the pane of follow in the window, marked with the output directory it
+# follows.
+follow_pane() {
+    tmux list-panes -t "$TMUX_PANE" -F '#{pane_id} #{@follow}' |
+        awk '$2 != "" { print $1; exit }'
+}
+
+if [ "$1" = -k ]; then
+    if [ -n "${TMUX:-}" ] && [ -n "${TMUX_PANE:-}" ]; then
+        pane=$(follow_pane)
+        [ -z "$pane" ] || tmux kill-pane -t "$pane"
+    fi
+    exit 0
+fi
+
+scripts=$(cd "$(dirname "$0")" && pwd)
+root=$(cd "$scripts/../.." && pwd)
+
+# The run may not have created its output directory yet.
+mkdir -p "$1"
+output=$(cd "$1" && pwd)
+
+if [ -z "${TMUX:-}" ] || [ -z "${TMUX_PANE:-}" ]; then
+    echo "follow the run with: nix develop -c .claude/scripts/follow $output"
+    exit 0
+fi
+
+quoted=$(printf '%s' "$output" | sed "s/'/'\\\\''/g")
+command="nix develop -c .claude/scripts/follow '$quoted'"
+
+pane=$(follow_pane)
+
+if [ -z "$pane" ]; then
+    pane=$(tmux split-window -d -h -l 80 -t "$TMUX_PANE" -c "$root" \
+        -P -F '#{pane_id}' "$command")
+elif [ "$(tmux display-message -p -t "$pane" '#{@follow}')" != "$output" ]; then
+    tmux respawn-pane -k -t "$pane" -c "$root" "$command"
+fi
+tmux set-option -p -t "$pane" @follow "$output"

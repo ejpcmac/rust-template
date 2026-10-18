@@ -55,9 +55,11 @@ code organisation and practices of the author's projects.
   a prompt. `.claude/scripts/variant-matrix` renders every project type and,
   with `-c`, runs their checks: `-j` runs project types at once, `-u`
   updates kept renders for incremental checks. `.claude/scripts/follow`
-  shows a running `variant-matrix -c` to the author; the agent reads the
-  `summary` and the logs of its output directory instead. All three print
-  their usage when run with no arguments.
+  shows a running `variant-matrix -c` to the author;
+  `.claude/scripts/follow-pane` opens it in a tmux pane beside the agent, or
+  prints its command outside tmux, and closes the pane with `-k`. The agent
+  reads the `summary` and the logs of the output directory instead. All four
+  print their usage when run with no arguments.
 - To verify a change to the template, compare plain renders:
 
     ```

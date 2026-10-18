@@ -79,6 +79,7 @@ list = [
 
     # Repository scripts
     "x:follow",
+    "x:follow-pane",
     "x:variant-matrix",
 
     # Tools
